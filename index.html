@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Roguelike VN RPG</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="display-area">
+            <p id="dialogue-text"></p>
+        </div>
+
+        <div id="action-area">
+            <button class="action-button" onclick="startGame()">Start New Run</button>
+        </div>
+
+        <div id="stat-area">
+            HP: <span id="player-hp">100</span> | Gold: <span id="player-gold">0</span> | Floor: <span id="current-floor">1</span>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
