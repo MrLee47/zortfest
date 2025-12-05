@@ -1,147 +1,189 @@
-// --- Data Structures ---
-
-/**
- * A basic class for any entity in the game (Player or Enemy).
- */
-class Character {
-    constructor(name, maxHp, attack, defense) {
-        this.name = name;
-        this.maxHp = maxHp;
-        this.currentHp = maxHp;
-        this.attack = attack;
-        this.defense = defense;
-        this.isAlive = true;
-    }
-
-    takeDamage(damage) {
-        // Simple damage calculation: damage reduced by defense
-        let effectiveDamage = Math.max(0, damage - this.defense);
-        this.currentHp -= effectiveDamage;
-
-        if (this.currentHp <= 0) {
-            this.currentHp = 0;
-            this.isAlive = false;
-        }
-
-        return effectiveDamage;
-    }
-
-    // You would add more methods here: useAbility, heal, applyStatusEffect, etc.
-}
-
-// Global Game State Object
-const gameState = {
-    player: null,
-    currentFloor: 1,
-    currentGold: 0,
-    currentEnemy: null,
-    state: 'MENU' // States: 'MENU', 'VN_EVENT', 'COMBAT', 'GAME_OVER'
+// Global State for the current combat turn
+let currentTurn = {
+    playerAction: null, // 'ATTACK', 'DEFEND', or 'ABILITY_X'
+    enemyAction: null,
+    playerDamageRoll: 0,
+    enemyDamageRoll: 0,
+    log: []
 };
 
-// --- Initialization and Core Functions ---
+// --- Combat Functions ---
 
-function updateStatsDisplay() {
-    if (gameState.player) {
-        document.getElementById('player-hp').textContent = `${gameState.player.currentHp}/${gameState.player.maxHp}`;
-        document.getElementById('player-gold').textContent = gameState.currentGold;
-        document.getElementById('current-floor').textContent = gameState.currentFloor;
-    }
-}
-
-function displayDialogue(text) {
-    document.getElementById('dialogue-text').textContent = text;
-}
-
-function clearActions() {
-    document.getElementById('action-area').innerHTML = '';
-}
-
-function startGame() {
-    // 1. Initialize Player
-    gameState.player = new Character("The Adventurer", 100, 15, 5);
-    gameState.currentFloor = 1;
-    gameState.currentGold = 0;
-    gameState.state = 'VN_EVENT'; // Start the run with an event
-
-    updateStatsDisplay();
-    displayDialogue("A new journey begins... You find yourself at the entrance to a mysterious dungeon.");
-    
-    // 2. Clear old buttons and show the first path choice
-    clearActions();
-    
-    // 3. Move to the next stage of the run
-    nextRunStage();
-}
-
-// This function will randomly determine if the next stage is Combat, a VN Event, or a Shop
-function nextRunStage() {
-    gameState.currentFloor++;
-    updateStatsDisplay();
-    clearActions();
-    
-    const encounterType = Math.floor(Math.random() * 3); // 0=Combat, 1=Event, 2=Shop
-    
-    if (encounterType === 0) {
-        startCombat();
-    } else if (encounterType === 1) {
-        startVNEvent();
-    } else {
-        startShop();
-    }
-}
-
-// Placeholder functions for the next phases
 function startCombat() {
     gameState.state = 'COMBAT';
-    gameState.currentEnemy = new Character("Goblin", 30, 8, 2);
-    displayDialogue(`A wild ${gameState.currentEnemy.name} appears! Prepare for battle.`);
-    // We will code the actual combat loop logic next!
-    // For now, let's add a button to transition back
-    const actionArea = document.getElementById('action-area');
-    actionArea.innerHTML = `<button onclick="endCombatPlaceholder()">FIGHT!</button>`;
+    
+    // Define a new enemy with speed
+    gameState.currentEnemy = new Character("Goblin Grunt", 30, 8, 2, 6); // HP 30, ATK 8, DEF 2, SPEED 6
+    
+    // Give the player speed as well (let's say 10 for a head start)
+    gameState.player.speed = 10; 
+    
+    displayCombatOptions();
 }
 
-function startVNEvent() {
-    gameState.state = 'VN_EVENT';
-    displayDialogue("You find a hidden shrine. Do you PRAY for luck or SMASH it for loot?");
+function displayCombatOptions() {
+    const enemy = gameState.currentEnemy;
+    
+    // Clear previous log/results
+    currentTurn.log = [];
+    
+    displayDialogue(`Combat: **${enemy.name}** (HP: ${enemy.currentHp}) vs. **${gameState.player.name}** (HP: ${gameState.player.currentHp})`);
     
     const actionArea = document.getElementById('action-area');
     actionArea.innerHTML = `
-        <button class="action-button" onclick="handleVNChoice('PRAY')">Pray (+HP)</button>
-        <button class="action-button" onclick="handleVNChoice('SMASH')">Smash (+Gold)</button>
+        <button class="action-button" onclick="handlePlayerAction('ATTACK')">Attack (Base ${gameState.player.attack})</button>
+        <button class="action-button" onclick="handlePlayerAction('DEFEND')">Defend (+5 Def)</button>
     `;
-}
-
-function handleVNChoice(choice) {
-    if (choice === 'PRAY') {
-        gameState.player.currentHp = Math.min(gameState.player.maxHp, gameState.player.currentHp + 10);
-        displayDialogue("You feel invigorated. (+10 HP)");
-    } else if (choice === 'SMASH') {
-        gameState.currentGold += 5;
-        displayDialogue("You find a few rusty coins. (+5 Gold)");
-    }
     updateStatsDisplay();
+}
+
+function handlePlayerAction(action) {
+    currentTurn.playerAction = action;
     
-    // After the choice, move to the next stage
-    clearActions();
-    document.getElementById('action-area').innerHTML = `<button class="action-button" onclick="nextRunStage()">Continue Deeper</button>`;
+    // 1. Enemy chooses its action (Simple AI for now: 70% Attack, 30% Defend)
+    currentTurn.enemyAction = (Math.random() < 0.7) ? 'ATTACK' : 'DEFEND';
+    
+    // 2. Resolve the turn
+    resolveTurn();
+}
+
+function resolveTurn() {
+    const player = gameState.player;
+    const enemy = gameState.currentEnemy;
+    currentTurn.log = []; // Reset turn log
+
+    // 3. Determine Move Order
+    const fasterEntity = (player.speed > enemy.speed) ? 'player' : 'enemy';
+    const slowerEntity = (player.speed <= enemy.speed) ? 'player' : 'enemy';
+    
+    // A. Check for CLASH (Both choose ATTACK)
+    if (currentTurn.playerAction === 'ATTACK' && currentTurn.enemyAction === 'ATTACK') {
+        runClash(player, enemy);
+    } 
+    // B. Resolve Standard Actions (Speed Dependent)
+    else {
+        // Order: Faster entity resolves its move, then the slower one
+        const resolutionOrder = [
+            { entity: fasterEntity === 'player' ? player : enemy, action: fasterEntity === 'player' ? currentTurn.playerAction : currentTurn.enemyAction, target: fasterEntity === 'player' ? enemy : player },
+            { entity: slowerEntity === 'player' ? player : enemy, action: slowerEntity === 'player' ? currentTurn.playerAction : currentTurn.enemyAction, target: slowerEntity === 'player' ? enemy : player }
+        ];
+
+        for (const { entity, action, target } of resolutionOrder) {
+            if (!entity.isAlive || !target.isAlive) continue; // Stop if someone died
+
+            if (action === 'ATTACK') {
+                handleAttack(entity, target);
+            } else if (action === 'DEFEND') {
+                handleDefend(entity);
+            }
+        }
+        
+        // Remove temporary defense bonus at the end of the turn
+        if (currentTurn.playerAction !== 'DEFEND') player.defense -= 5;
+        if (currentTurn.enemyAction !== 'DEFEND') enemy.defense -= 5;
+        
+    }
+
+    // 4. Update and Check for End of Combat
+    endTurnChecks();
+}
+
+function handleAttack(attacker, defender) {
+    // If the defender is in DEFEND state, the attack may miss if the attacker is slower
+    // YOUR RULE: The defensive move must be faster than the attack to block it.
+    
+    let baseDamage = attacker.rollAttackDamage();
+    let effectiveDamage = defender.takeDamage(baseDamage);
+    
+    currentTurn.log.push(`${attacker.name} attacks ${defender.name} for ${effectiveDamage} damage!`);
+}
+
+function handleDefend(defender) {
+    // Apply temporary defense buff
+    defender.defense += 5; 
+    currentTurn.log.push(`${defender.name} braces for impact, gaining +5 Defense this turn.`);
 }
 
 
-// PLACEHOLDER to test the flow
-function endCombatPlaceholder() {
-    displayDialogue("The battle is over! You won!");
-    gameState.currentGold += 10;
-    clearActions();
-    document.getElementById('action-area').innerHTML = `<button class="action-button" onclick="nextRunStage()">Continue Deeper</button>`;
+function flipCoins(numCoins) {
+    let heads = 0;
+    for (let i = 0; i < numCoins; i++) {
+        if (Math.random() >= 0.5) { // 50% chance for heads
+            heads++;
+        }
+    }
+    return heads;
 }
 
-function startShop() {
-    gameState.state = 'SHOP';
-    displayDialogue("You find a dusty merchant. What would you like to buy?");
-    clearActions();
-    const actionArea = document.getElementById('action-area');
-    actionArea.innerHTML = `
-        <button class="action-button" onclick="nextRunStage()">Leave Shop</button>
-    `;
+function runClash(p1, p2) {
+    let p1Heads = flipCoins(p1.coinFlips);
+    let p2Heads = flipCoins(p2.coinFlips);
+    
+    currentTurn.log.push(`CLASH! Both combatants attack!`);
+    currentTurn.log.push(`${p1.name} flips ${p1.coinFlips} coins and gets ${p1Heads} Heads.`);
+    currentTurn.log.push(`${p2.name} flips ${p2.coinFlips} coins and gets ${p2Heads} Heads.`);
+
+    let winner, loser, winnerHeads;
+    
+    if (p1Heads > p2Heads) {
+        winner = p1;
+        loser = p2;
+        winnerHeads = p1Heads;
+    } else if (p2Heads > p1Heads) {
+        winner = p2;
+        loser = p1;
+        winnerHeads = p2Heads;
+    } else {
+        // Draw: Both take a small hit
+        let p1Damage = p1.rollAttackDamage();
+        let p2Damage = p2.rollAttackDamage();
+        
+        let p1Taken = p1.takeDamage(p2Damage);
+        let p2Taken = p2.takeDamage(p1Damage);
+        
+        currentTurn.log.push(`The clash is a DRAW! Both take damage.`);
+        currentTurn.log.push(`${p1.name} takes ${p1Taken} damage. ${p2.name} takes ${p2Taken} damage.`);
+        endTurnChecks();
+        return;
+    }
+
+    // Winner gets the attack, plus bonus damage for heads
+    let bonusDamage = winnerHeads * 2;
+    let baseDamage = winner.rollAttackDamage();
+    let totalDamage = baseDamage + bonusDamage;
+    
+    let damageTaken = loser.takeDamage(totalDamage);
+    
+    currentTurn.log.push(`${winner.name} WINS the clash! (${winnerHeads} Heads)`);
+    currentTurn.log.push(`${winner.name} hits ${loser.name} for ${damageTaken} damage (Base: ${baseDamage}, Bonus: ${bonusDamage}).`);
+
+    endTurnChecks();
+}
+
+
+function endTurnChecks() {
+    const player = gameState.player;
+    const enemy = gameState.currentEnemy;
+    
+    // Display the combat log
+    document.getElementById('dialogue-text').innerHTML = currentTurn.log.join('<br>');
+    
+    // Check if player or enemy died
+    if (!player.isAlive) {
+        gameState.state = 'GAME_OVER';
+        clearActions();
+        document.getElementById('action-area').innerHTML = `<p>Game Over. You perished!</p><button onclick="startGame()">Try Again?</button>`;
+    } else if (!enemy.isAlive) {
+        // Player wins!
+        gameState.currentGold += 10; // Reward
+        displayDialogue(currentTurn.log.join('<br>') + `<br><br>The ${enemy.name} is defeated! You gained 10 Gold.`);
+        clearActions();
+        document.getElementById('action-area').innerHTML = `<button class="action-button" onclick="nextRunStage()">Continue Deeper</button>`;
+    } else {
+        // Combat continues
+        document.getElementById('action-area').innerHTML = `<button class="action-button" onclick="displayCombatOptions()">Next Turn</button>`;
+        displayCombatOptions(); // Re-display action buttons for the player
+    }
+    
+    updateStatsDisplay();
 }
