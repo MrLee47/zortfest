@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Dungeon Crawler: Character Combat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Base Configuration - Applies to all themes */
         body {
@@ -13,14 +14,14 @@
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            padding: 0; /* Remove padding to prevent scroll */
+            padding: 0; 
             transition: background-color 0.5s, color 0.5s;
         }
 
         #game-container {
-            width: 98vw; /* Use viewport width */
+            width: 98vw; 
             max-width: 1200px; 
-            height: 98vh; /* Use viewport height to prevent scrolling */
+            height: 98vh; 
             border-radius: 12px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
             overflow: hidden;
@@ -29,11 +30,11 @@
             transition: all 0.5s;
         }
 
-        /* --- THEMES --- */
+        /* --- THEMES (Adjusted for No Outline/Cream) --- */
 
         /* Default Theme: Cream/Black */
         .theme-default {
-            background-color: #E0E0E0; /* Light background for body */
+            background-color: #E0E0E0; 
             color: #121212;
         }
         .theme-default #game-container {
@@ -41,70 +42,22 @@
             border: 2px solid #333333;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
         }
-        /* Button styling for Default (Cream) theme */
+        /* Button styling for Default (Cream) theme - NO OUTLINE */
         .theme-default .action-button, .theme-default .choice-card {
             background-color: #F0EFE3; /* Off-white/Cream button */
             color: #121212;
-            border: 1px solid #AAAAAA;
-            box-shadow: none; /* Removed shadows */
+            border: none !important; /* Removed outline */
+            box-shadow: none; 
+            border-radius: 6px;
         }
         .theme-default .action-button:hover, .theme-default .choice-card:hover { 
             background-color: #E0E0D0; 
         }
-        .theme-default #combat-log, .theme-default #dialogue-box {
+        .theme-default #combat-log, .theme-default #dialogue-box, #combat-dialogue-box {
             background-color: #FFFFFF;
             border: 1px solid #CCCCCC;
         }
         .theme-default .stat-item span { color: #008CBA; }
-
-
-        /* Dark Mode Theme: Dark Gray/Light Text */
-        .theme-dark {
-            background-color: #121212;
-            color: #E0E0E0;
-        }
-        .theme-dark #game-container {
-            background-color: #1C1C1C;
-            border: 3px solid #3A3A3A;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
-        }
-        .theme-dark .action-button, .theme-dark .choice-card {
-            background-color: #333333;
-            color: #E0E0E0;
-            border: 1px solid #555555;
-            box-shadow: none;
-        }
-        .theme-dark .action-button:hover, .theme-dark .choice-card:hover { background-color: #444444; }
-        .theme-dark #combat-log, .theme-dark #dialogue-box {
-            background-color: #252525;
-            border: 1px solid #444444;
-        }
-        .theme-dark .stat-item span { color: #FFD700; }
-
-        /* Retro Mode Theme: Black/Green Text */
-        .theme-retro {
-            background-color: #000000;
-            color: #00FF00;
-        }
-        .theme-retro #game-container {
-            background-color: #000000;
-            border: 3px solid #00AA00;
-            box-shadow: 0 0 15px #00FF00;
-        }
-        .theme-retro .action-button, .theme-retro .choice-card {
-            background-color: #000000;
-            color: #00FF00;
-            border: 1px dashed #00AA00;
-            box-shadow: none;
-        }
-        .theme-retro .action-button:hover, .theme-retro .choice-card:hover { background-color: #002200; }
-        .theme-retro #combat-log, .theme-retro #dialogue-box {
-            background-color: #000000;
-            border: 1px dashed #00AA00;
-        }
-        .theme-retro .stat-item span { color: #00FF00; }
-        .theme-retro .stat-item { filter: brightness(1.5); }
-        .theme-retro * { text-shadow: 0 0 1px #00FF00; }
 
 
         /* --- UI COMPONENTS --- */
@@ -156,16 +109,11 @@
             transition: background-color 0.2s, border-color 0.2s;
             text-align: left;
         }
-        .choice-card:hover {
-            border-color: #333333;
-        }
 
         /* --- COMBAT LAYOUT --- */
         #combat-view {
             display: grid;
-            /* Layout: (Image/Dialogue) | (Log) */
             grid-template-columns: 2.5fr 1fr; 
-            /* Layout: (Stats/Image) | (Dialogue) */
             grid-template-rows: auto 3fr auto; 
             gap: 10px;
             padding: 15px;
@@ -186,10 +134,49 @@
             border-radius: 8px;
             background-color: rgba(128, 128, 128, 0.1);
             display: flex;
-            justify-content: space-around;
+            flex-direction: column;
+            justify-content: center;
             align-items: center;
             padding: 15px;
         }
+        
+        #animation-output {
+            font-size: 3em;
+            font-weight: 800;
+            min-height: 50px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            transition: opacity 0.3s;
+        }
+        
+        #coin-animation-area {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            max-width: 80%;
+            min-height: 100px;
+            padding: 10px;
+        }
+        .coin-flip {
+            font-size: 2.5em;
+            width: 40px;
+            height: 40px;
+            line-height: 40px;
+            text-align: center;
+            border-radius: 50%;
+            background-color: gold;
+            color: brown;
+            transition: transform 0.5s ease-out;
+            transform: rotateY(0deg);
+        }
+        .coin-flip.heads { background-color: #FFD700; color: #121212; }
+        .coin-flip.tails { background-color: #B87333; color: white; }
+        @keyframes flip {
+            0% { transform: scale(1) rotateY(0deg); }
+            50% { transform: scale(1.5) rotateY(180deg); }
+            100% { transform: scale(1) rotateY(360deg); }
+        }
+
 
         #combat-dialogue-box {
             grid-column: 1 / 2;
@@ -205,7 +192,7 @@
 
         #combat-log {
             grid-column: 2 / 3;
-            grid-row: 1 / 4; /* Takes up the whole right side */
+            grid-row: 1 / 4; 
             padding: 10px;
             border-radius: 8px;
             overflow-y: scroll;
@@ -227,8 +214,8 @@
         }
         .health-bar {
             height: 100%;
-            background-color: #4CAF50;
-            width: 100%; /* Default to full */
+            background-color: #CC3333; /* Deep Red for Health */
+            width: 100%; 
             transition: width 0.5s ease-in-out;
             text-align: right;
             line-height: 20px;
@@ -238,7 +225,8 @@
             padding-right: 5px;
             box-sizing: border-box;
         }
-        .health-bar.low { background-color: #f44336; }
+        .health-bar.low { background-color: #990000; } /* Darker red when low */
+
 
         /* --- ACTION AREA (Bottom Buttons) --- */
         #action-area {
@@ -250,7 +238,7 @@
             border-top: inherit;
         }
         .action-button {
-            border: none;
+            border: none !important; /* Removed outline */
             padding: 12px 25px;
             cursor: pointer;
             font-size: 1em;
@@ -261,9 +249,9 @@
         }
         .action-button:active { transform: translateY(0px); box-shadow: none !important; }
 
-        /* Specific ability colors */
-        .ability-attack { border-color: #E65100 !important; }
-        .ability-utility { border-color: #1976D2 !important; }
+        /* Specific ability colors - using a subtle border for classification since outline is removed */
+        .ability-attack { border: 1px solid #E65100 !important; }
+        .ability-utility { border: 1px solid #1976D2 !important; }
     </style>
 </head>
 <body class="theme-default">
@@ -352,8 +340,9 @@
                 
                 <!-- Image/Animation Area -->
                 <div id="image-animation-area">
-                    <div id="visual-content" style="font-size: 1.5em;">
-                        <!-- Placeholder for visual content -->
+                    <div id="visual-content" style="font-size: 1.5em; text-align: center;">
+                        <div id="animation-output"></div>
+                        <div id="coin-animation-area"></div>
                         The fight is on!
                     </div>
                 </div>
@@ -387,6 +376,30 @@
 
     <script>
         // --- START game.js CONTENT ---
+
+        // Global Game State Object
+        const gameState = {
+            player: null,
+            currentFloor: 0,
+            currentGold: 0,
+            currentEnemy: null,
+            state: 'MENU', 
+            playerCharacterKey: null,
+            rewindState: null, 
+            currentTheme: 'default',
+            fullCombatLog: [] // Store all log messages
+        };
+
+        // Global State for the current combat turn
+        let currentTurn = {
+            playerAction: null, 
+            enemyAction: null,
+            actionPerformer: null, 
+            log: [], // Temp log for the current turn resolution
+            isRewindTurn: false, 
+            staggeredEntity: null,
+            turnNumber: 0,
+        };
 
         // --- 1. Character Data Definitions (Initial Rosters) ---
 
@@ -509,7 +522,6 @@
 
                 if (this.name === 'Shuten-Maru' && currentTurn.isRewindTurn) {
                     baseDamage *= 2;
-                    currentTurn.log.push(`Shuten-Maru's damage doubled due to Rewind!`);
                 }
 
                 // If player attacks, reveal enemy attack stat
@@ -523,7 +535,6 @@
             // --- Ability Helpers (Used in resolveTurn) ---
 
             startDefend() {
-                // This function is now only used by the ENEMY AI's DEFEND action.
                 this.status.tempDefenseBonus = 5;
                 this.defense += 5; 
                 currentTurn.log.push(`${this.name} braces for impact, gaining +5 Defense this turn.`);
@@ -557,30 +568,6 @@
                 }
             }
         }
-
-        // Global Game State Object
-        const gameState = {
-            player: null,
-            currentFloor: 0,
-            currentGold: 0,
-            currentEnemy: null,
-            state: 'MENU', 
-            playerCharacterKey: null,
-            rewindState: null, 
-            currentTheme: 'default',
-            fullCombatLog: [] // Store all log messages
-        };
-
-        // Global State for the current combat turn
-        let currentTurn = {
-            playerAction: null, 
-            enemyAction: null,
-            actionPerformer: null, 
-            log: [], // Temp log for the current turn resolution
-            isRewindTurn: false, 
-            staggeredEntity: null,
-        };
-
 
         // --- UI/Theme Management ---
 
@@ -655,6 +642,7 @@
                 const effects = [];
                 if (enemy.status.isGrappled) effects.push(`GRAPPLED`);
                 
+                // Only display what the player has 'discovered'
                 if (enemy.status.uncoveredStats.defense) {
                     enemyStatsHtml += `Def: ${enemy.defense} | `;
                 }
@@ -702,6 +690,121 @@
             // Scroll to the bottom
             logElement.scrollTop = logElement.scrollHeight;
         }
+
+        /**
+         * ANIMATION FUNCTION: Shows a rapid number roll and then displays the final result.
+         * @param {number} finalValue - The final damage/heal number to display.
+         * @param {string} type - 'damage' (red) or 'heal' (green).
+         * @returns {Promise<void>} - Resolves when animation is complete.
+         */
+        function animateDamageText(finalValue, type) {
+            const output = document.getElementById('animation-output');
+            const color = type === 'damage' ? '#CC3333' : '#4CAF50';
+            const prefix = type === 'damage' ? '-' : '+';
+            
+            output.textContent = '';
+            output.style.color = color;
+            
+            return new Promise(resolve => {
+                let current = 0;
+                let duration = 600; // ms
+                let startTime = null;
+
+                // Animate roll
+                function roll(timestamp) {
+                    if (!startTime) startTime = timestamp;
+                    const elapsed = timestamp - startTime;
+                    const progress = Math.min(1, elapsed / duration);
+
+                    if (progress < 1) {
+                        current = Math.floor(Math.random() * (finalValue * 1.5) + 1);
+                        output.textContent = `${prefix}${current}`;
+                        requestAnimationFrame(roll);
+                    } else {
+                        // Final display
+                        output.textContent = `${prefix}${finalValue}`;
+                        setTimeout(() => {
+                            output.textContent = '';
+                            resolve();
+                        }, 800); 
+                    }
+                }
+                requestAnimationFrame(roll);
+            });
+        }
+        
+        /**
+         * ANIMATION FUNCTION: Generates and animates coins flipping for a clash.
+         * @param {string} p1Name - Name of player 1.
+         * @param {number} p1TotalCoins - Total coins for p1.
+         * @param {number} p1Heads - Heads rolled by p1.
+         * @param {string} p2Name - Name of player 2.
+         * @param {number} p2TotalCoins - Total coins for p2.
+         * @param {number} p2Heads - Heads rolled by p2.
+         * @returns {Promise<void>} - Resolves when animation is complete.
+         */
+        function animateCoinFlips(p1Name, p1TotalCoins, p1Heads, p2Name, p2TotalCoins, p2Heads) {
+            const area = document.getElementById('coin-animation-area');
+            const output = document.getElementById('animation-output');
+            area.innerHTML = '';
+            output.textContent = 'CLASH INITIATED!';
+            output.style.color = '#121212';
+            
+            const p1Result = Array(p1TotalCoins).fill(0).map((_, i) => i < p1Heads ? 'H' : 'T');
+            const p2Result = Array(p2TotalCoins).fill(0).map((_, i) => i < p2Heads ? 'H' : 'T');
+            
+            // Randomly interleave results for better visual flow
+            const allResults = [];
+            while (p1Result.length > 0 || p2Result.length > 0) {
+                if (p1Result.length > 0) allResults.push({ result: p1Result.shift(), owner: p1Name });
+                if (p2Result.length > 0) allResults.push({ result: p2Result.shift(), owner: p2Name });
+            }
+
+            return new Promise(resolve => {
+                let delay = 0;
+                let displayedCoins = [];
+
+                for (let i = 0; i < allResults.length; i++) {
+                    const { result, owner } = allResults[i];
+                    
+                    setTimeout(() => {
+                        const coin = document.createElement('div');
+                        coin.className = 'coin-flip';
+                        coin.textContent = '?';
+                        coin.style.animation = 'flip 0.8s ease-out';
+                        area.appendChild(coin);
+                        displayedCoins.push(coin);
+                        
+                        setTimeout(() => {
+                            coin.textContent = result;
+                            coin.className = `coin-flip ${result === 'H' ? 'heads' : 'tails'}`;
+                            coin.title = `${owner}: ${result}`;
+                        }, 400); // Stop flip animation mid-way to show result
+                        
+                        // Update output text with running totals
+                        const currentP1Heads = displayedCoins.filter(c => c.title.includes(p1Name) && c.textContent === 'H').length;
+                        const currentP2Heads = displayedCoins.filter(c => c.title.includes(p2Name) && c.textContent === 'H').length;
+                        output.textContent = `${p1Name}: ${currentP1Heads}/${p1TotalCoins} vs ${p2Name}: ${currentP2Heads}/${p2TotalCoins}`;
+
+                        if (i === allResults.length - 1) {
+                            // After the last coin lands, resolve the promise after a slight delay
+                            setTimeout(() => {
+                                output.textContent = '';
+                                area.innerHTML = '';
+                                resolve();
+                            }, 1500); 
+                        }
+                    }, delay);
+                    delay += 250; 
+                }
+                // Handle case of zero coins (shouldn't happen with Zect, but safe fallback)
+                if (allResults.length === 0) {
+                     output.textContent = '';
+                     resolve();
+                }
+            });
+        }
+
 
         // --- Game Flow Functions ---
 
@@ -773,11 +876,14 @@
 
         function handleVNChoice(choice) {
             if (choice === 'PRAY') {
-                gameState.player.currentHp = Math.min(gameState.player.maxHp, gameState.player.currentHp + 10);
-                displayDialogue("You feel invigorated. (+10 HP)");
+                const heal = 10;
+                gameState.player.currentHp = Math.min(gameState.player.maxHp, gameState.player.currentHp + heal);
+                displayDialogue(`You feel invigorated. (+${heal} HP)`);
+                animateDamageText(heal, 'heal');
             } else if (choice === 'SMASH') {
-                gameState.currentGold += 5;
-                displayDialogue("You find a few rusty coins. (+5 Gold)");
+                const gold = 5;
+                gameState.currentGold += gold;
+                displayDialogue(`You find a few rusty coins. (+${gold} Gold)`);
             }
             updateStatsDisplay();
             
@@ -805,9 +911,8 @@
             
             gameState.currentEnemy = new Character(CHARACTER_DATA.GOBLIN);
             
-            // Log turn 1 start
-            gameState.fullCombatLog.push(`[Turn 1] Starting combat with ${gameState.currentEnemy.name}.`);
             currentTurn.turnNumber = 1;
+            gameState.fullCombatLog.push(`[Turn ${currentTurn.turnNumber}] Starting combat with ${gameState.currentEnemy.name}.`);
             updateCombatLog();
 
             displayCombatOptions();
@@ -824,7 +929,8 @@
 
             // Check for stagger 
             if (player.status.isStaggered) {
-                currentTurn.log.push(`${player.name} is Staggered and cannot move this turn.`);
+                currentTurn.log.push(`[Turn ${currentTurn.turnNumber}] ${player.name} is Staggered and cannot move this turn.`);
+                updateCombatLog(currentTurn.log);
                 handlePlayerAction('STAGGERED'); 
                 return;
             }
@@ -871,12 +977,16 @@
             return html;
         }
 
-        function handlePlayerAction(action) {
+        async function handlePlayerAction(action) {
+            // Disable buttons during resolution
+            document.querySelectorAll('.action-button').forEach(btn => btn.disabled = true);
+
             // Save state for potential Shuten-Maru Rewind
             gameState.rewindState = JSON.stringify({
                 player: JSON.parse(JSON.stringify(gameState.player)), 
                 enemy: JSON.parse(JSON.stringify(gameState.currentEnemy)), 
                 currentLog: currentTurn.log.slice(), // Slice for a copy
+                turnNumber: currentTurn.turnNumber
             });
 
             currentTurn.playerAction = action;
@@ -885,6 +995,7 @@
             if (action === 'PILEDRIVER' && !gameState.currentEnemy.status.isGrappled) {
                 currentTurn.log.push("Piledriver failed: Target must be Grappled!");
                 updateCombatLog(currentTurn.log);
+                document.querySelectorAll('.action-button').forEach(btn => btn.disabled = false);
                 displayCombatOptions();
                 return;
             }
@@ -893,16 +1004,17 @@
             currentTurn.enemyAction = (Math.random() < 0.7) ? 'ATTACK' : 'DEFEND';
             
             // 2. Resolve the turn
-            resolveTurn();
+            await resolveTurn();
         }
 
         // --- CORE RESOLUTION LOGIC ---
 
-        function resolveTurn() {
+        async function resolveTurn() {
             const player = gameState.player;
             const enemy = gameState.currentEnemy;
             
-            currentTurn.log.push(`[Turn ${currentTurn.turnNumber + 1}] ${player.name} uses ${currentTurn.playerAction}. ${enemy.name} prepares to ${currentTurn.enemyAction}.`);
+            currentTurn.turnNumber++;
+            currentTurn.log.push(`[Turn ${currentTurn.turnNumber}] ${player.name} uses ${currentTurn.playerAction}. ${enemy.name} prepares to ${currentTurn.enemyAction}.`);
             
             const cannotClash = player.status.isGrappled || enemy.status.isGrappled;
             const playerAttackActions = ['HAYMAKER', 'DRAGONTWISTER', 'GHOSTPALM', 'TRI-SWORD'];
@@ -916,9 +1028,11 @@
                     currentTurn.log.push(`Striker's Disruptive Lunge forces a Clash!`);
                 }
             }
+            
+            let shouldContinue = true;
 
             if (isClash) {
-                runClash(player, enemy);
+                await runClash(player, enemy);
             } 
             else {
                 // Enemy speed stat discovery
@@ -936,56 +1050,59 @@
                 );
 
                 for (const { entity, action, target } of resolutionOrder) {
-                    if (!entity.isAlive || !target.isAlive || action === 'STAGGERED') continue; 
+                    if (!entity.isAlive || !target.isAlive || action === 'STAGGERED' || !shouldContinue) continue; 
                     currentTurn.actionPerformer = entity;
 
                     // Execute ability based on chosen action
                     if (action === 'DEFEND') { 
                         entity.startDefend();
                     } else if (action === 'ATTACK') { 
-                        handleAttackAction(entity, target, entity.attack, 'Physical');
+                        await handleAttackAction(entity, target, entity.attack, 'Physical');
                     } else if (action === 'IRONGUARD') {
                         handleIronGuard(entity);
                     } else if (action === 'HAYMAKER') {
-                        handleAttackAction(entity, target, 10, 'Physical');
+                        await handleAttackAction(entity, target, 10, 'Physical');
                     } else if (action === 'GRAPPLE') {
                         handleGrapple(entity, target);
                     } else if (action === 'PILEDRIVER') {
-                        handlePiledriver(entity, target);
+                        await handlePiledriver(entity, target);
                     } else if (action === 'DRAGONTWISTER') {
-                        handleAttackAction(entity, target, 6, 'Physical');
+                        await handleAttackAction(entity, target, 6, 'Physical');
                     } else if (action === 'SKIPPER') {
                         handleSkipper(entity);
                     } else if (action === 'HEAVYBLOW') {
-                        handleHeavyBlow(entity, target);
+                        await handleHeavyBlow(entity, target);
                     } else if (action === 'GHOSTPALM') {
-                        handleGhostPalm(entity, target);
+                        await handleGhostPalm(entity, target);
                     } else if (action === 'PHASE') {
                         handlePhase(entity);
                     } else if (action === 'ACCELERATOR') {
-                        handleAccelerator(entity, target);
+                        await handleAccelerator(entity, target);
                     } else if (action === 'REWIND') {
                         // Rewind is handled in handlePlayerAction to restart the turn
                     } else if (action === 'TRI-SWORD') {
-                        handleTriSword(entity, target);
+                        await handleTriSword(entity, target);
                     } else if (action === 'SWITCH') {
                         handleSwitch(entity);
                     }
+                    
+                    // Break if combat ended during a step
+                    if (!player.isAlive || !enemy.isAlive) {
+                         shouldContinue = false;
+                         break;
+                    }
                 }
-
+                
                 // --- Balter's Iron Guard Counter Trait Check (Post-action) ---
-                if (player.name === 'Balter' && player.status.ironGuardActive && currentTurn.enemyAction === 'ATTACK') {
+                if (shouldContinue && player.name === 'Balter' && player.status.ironGuardActive && currentTurn.enemyAction === 'ATTACK') {
                     const balterIsFaster = player.speed > enemy.speed;
                     if (!balterIsFaster) {
                         currentTurn.log.push(`Balter's Iron Guard triggers a free Haymaker counter!`);
-                        handleAttackAction(player, enemy, 10, 'Physical', true); 
+                        await handleAttackAction(player, enemy, 10, 'Physical', true); 
                     }
                 }
             }
             
-            // Advance turn number for the next round
-            currentTurn.turnNumber++;
-
             // 5. Check for End of Combat
             endTurnChecks();
         }
@@ -1012,7 +1129,7 @@
             }
         }
 
-        function handlePiledriver(attacker, target) {
+        async function handlePiledriver(attacker, target) {
             if (!target.status.isGrappled) return; 
             const damage = 20;
             const damageTaken = target.takeDamage(damage, 'Physical', true); 
@@ -1022,6 +1139,7 @@
             target.speed = target.baseSpeed;
 
             currentTurn.log.push(`**PILEDRIVER!** ${target.name} takes ${damageTaken} damage! Grapple ends.`);
+            await animateDamageText(damageTaken, 'damage');
         }
 
         // Striker
@@ -1032,32 +1150,36 @@
             currentTurn.log.push(`Striker activates Skipper! Defense halved, physical damage +2, and **Clashes always win** for 2 turns.`);
         }
 
-        function handleHeavyBlow(striker, target) {
+        async function handleHeavyBlow(striker, target) {
             const damage = 20;
             const damageTaken = target.takeDamage(damage, 'Physical');
             striker.status.isStaggered = true; 
             currentTurn.log.push(`Striker hits Heavy Blow for ${damageTaken} damage! Striker is **STAGGERED** next turn.`);
+            await animateDamageText(damageTaken, 'damage');
         }
 
         // Shuten-Maru
-        function handleGhostPalm(shuten, target) {
+        async function handleGhostPalm(shuten, target) {
             const damage = shuten.rollAttackDamage(8, 'Psychic'); 
             const damageTaken = target.takeDamage(damage, 'Psychic');
+            currentTurn.log.push(`Shuten-Maru strikes with Ghost Palm for ${damageTaken} Psychic damage.`);
+            await animateDamageText(damageTaken, 'damage');
+
 
             if (damage === 8) { 
                 const heal = 5; 
                 shuten.currentHp = Math.min(shuten.maxHp, shuten.currentHp + heal);
                 currentTurn.log.push(`Shuten-Maru's Chrono-Fist triggers! He heals for ${heal}.`);
+                await animateDamageText(heal, 'heal');
             }
 
             if (shuten.status.shutenDoublePalm) {
                  const bonusDmg = shuten.rollAttackDamage(8, 'Psychic');
                  const bonusTaken = target.takeDamage(bonusDmg, 'Psychic');
                  currentTurn.log.push(`**Double Palm!** Follow-up hit for ${bonusTaken} Psychic damage.`);
+                 await animateDamageText(bonusTaken, 'damage');
                  shuten.status.shutenDoublePalm = false;
             }
-
-            currentTurn.log.push(`Shuten-Maru strikes with Ghost Palm for ${damageTaken} Psychic damage.`);
         }
 
         function handlePhase(shuten) {
@@ -1070,7 +1192,7 @@
             currentTurn.log.push(`Shuten-Maru phases! Speed greatly increased. Gains 1 stack of Misty (${shuten.status.mistyStacks}).`);
         }
 
-        function handleAccelerator(shuten, target) {
+        async function handleAccelerator(shuten, target) {
             const damage = shuten.rollAttackDamage(4, 'Force'); 
             const shutenIsFaster = shuten.speed > target.speed;
 
@@ -1078,14 +1200,15 @@
             if (shutenIsFaster) {
                 damageTaken = target.takeDamage(damage, 'Force', true); 
                 currentTurn.log.push(`Shuten-Maru is faster! Accelerator bypasses all defense for ${damageTaken} Force damage.`);
-
-                if (currentTurn.enemyAction === 'ATTACK') {
-                    shuten.status.shutenDoublePalm = true;
-                    currentTurn.log.push(`Ghost Palm ready to hit twice next time!`);
-                }
             } else {
                  damageTaken = target.takeDamage(damage, 'Force');
                  currentTurn.log.push(`Accelerator hits for ${damageTaken} Force damage (Defended).`);
+            }
+            await animateDamageText(damageTaken, 'damage');
+
+            if (shutenIsFaster && currentTurn.enemyAction === 'ATTACK') {
+                shuten.status.shutenDoublePalm = true;
+                currentTurn.log.push(`Ghost Palm ready to hit twice next time!`);
             }
         }
         
@@ -1099,12 +1222,11 @@
                 Object.assign(shuten, oldState.player);
                 Object.assign(gameState.currentEnemy, oldState.enemy);
                 
-                // Restore status objects (which were deep-copied too)
                 shuten.status = oldState.player.status;
                 gameState.currentEnemy.status = oldState.enemy.status;
                 
-                // Restore log (the state saved was the log *before* the failed turn)
-                gameState.fullCombatLog = gameState.fullCombatLog.slice(0, gameState.fullCombatLog.length - oldState.currentLog.length);
+                gameState.fullCombatLog = gameState.fullCombatLog.slice(0, gameState.fullCombatLog.length - currentTurn.log.length);
+                currentTurn.turnNumber = oldState.turnNumber;
                 
                 shuten.status.rewindUsed = true;
                 currentTurn.isRewindTurn = true;
@@ -1127,7 +1249,7 @@
         }
 
         // Zect
-        function handleTriSword(zect, target) {
+        async function handleTriSword(zect, target) {
             const form = zect.status.currentForm;
             let dieSize, type;
 
@@ -1137,15 +1259,16 @@
 
             const damage = zect.rollAttackDamage(dieSize, type);
             const damageTaken = target.takeDamage(damage, type);
+            currentTurn.log.push(`Zect attacks with ${form} for ${damageTaken} ${type} damage.`);
+            await animateDamageText(damageTaken, 'damage');
 
             // Scythe Form Heal Bonus
             if (form === 'Scythe' && damageTaken > 0) {
                 const heal = Math.ceil(damageTaken / 2); 
                 zect.currentHp = Math.min(zect.maxHp, zect.currentHp + heal);
                 currentTurn.log.push(`Zect's Scythe Form: Heals for ${heal} HP.`);
+                await animateDamageText(heal, 'heal');
             }
-
-            currentTurn.log.push(`Zect attacks with ${form} for ${damageTaken} ${type} damage.`);
         }
 
         function handleSwitch(zect) {
@@ -1178,7 +1301,7 @@
         
         // --- Shared Combat Logic ---
 
-        function handleAttackAction(attacker, defender, dieSize, type, isFreeAttack = false) {
+        async function handleAttackAction(attacker, defender, dieSize, type, isFreeAttack = false) {
             const defenderAction = (defender === gameState.player) ? currentTurn.playerAction : currentTurn.enemyAction;
             const defenderIsFaster = defender.speed > attacker.speed;
             
@@ -1192,6 +1315,7 @@
             let damageTaken = defender.takeDamage(baseDamage, type);
             
             currentTurn.log.push(`${attacker.name} attacks ${defender.name} (${type}) for **${damageTaken}** damage!`);
+            await animateDamageText(damageTaken, 'damage');
             
             // Striker Momentum Trait Cleanup
             if (attacker.name === 'Striker' && type === 'Physical') {
@@ -1212,12 +1336,12 @@
             return heads;
         }
 
-        function runClash(p1, p2) {
+        async function runClash(p1, p2) {
             if (p1.status.isGrappled || p2.status.isGrappled) {
                 const grappledEntity = p1.status.isGrappled ? p1 : p2;
                 const winner = grappledEntity === p1 ? p2 : p1;
                 currentTurn.log.push(`The Clash is nullified! **${grappledEntity.name}** fails. ${winner.name} gets a free attack.`);
-                handleAttackAction(winner, grappledEntity, winner.attack, 'Physical', true); 
+                await handleAttackAction(winner, grappledEntity, winner.attack, 'Physical', true); 
                 return;
             }
             
@@ -1232,6 +1356,10 @@
             let p2Heads = flipCoins(p2Coins, p2);
             
             currentTurn.log.push(`***CLASH!***`);
+
+            // --- Animation Point ---
+            await animateCoinFlips(p1.name, p1Coins, p1Heads, p2.name, p2Coins, p2Heads);
+
             currentTurn.log.push(`${p1.name}: ${p1Heads} Heads (of ${p1Coins} coins).`);
             currentTurn.log.push(`${p2.name}: ${p2Heads} Heads (of ${p2Coins} coins).`);
 
@@ -1242,6 +1370,8 @@
                 let p1Taken = p1.takeDamage(p2.rollAttackDamage(p2.attack));
                 let p2Taken = p2.takeDamage(p1.rollAttackDamage(p1.attack));
                 currentTurn.log.push(`The clash is a DRAW! Both take damage.`);
+                await animateDamageText(p1Taken, 'damage');
+                await animateDamageText(p2Taken, 'damage');
                 return;
             }
 
@@ -1256,6 +1386,7 @@
             let damageTaken = loser.takeDamage(totalDamage);
             
             currentTurn.log.push(`**${winner.name} WINS** the clash! Hits for **${damageTaken}** damage.`);
+            await animateDamageText(damageTaken, 'damage');
 
             // --- Winner Traits ---
             if (winner.name === 'Balter') {
@@ -1263,6 +1394,7 @@
                 const extraDmg = 1 + Math.floor(Math.random() * extraDie);
                 const dmgTaken = loser.takeDamage(extraDmg, 'Physical', true);
                 currentTurn.log.push(`Balter's Old One-Two! Extra hit for ${dmgTaken} damage.`);
+                await animateDamageText(dmgTaken, 'damage');
             }
             
             if (winner.name === 'Striker') {
