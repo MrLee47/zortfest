@@ -2,24 +2,1012 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Roguelike VN RPG</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Dungeon Crawler: Character Combat</title>
+    <style>
+        /* Base styles using Tailwind-like principles for a clean, dark RPG look */
+        body {
+            background-color: #121212;
+            color: #E0E0E0;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        #game-container {
+            width: 90%;
+            max-width: 800px;
+            border: 3px solid #3A3A3A;
+            background-color: #1C1C1C;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- STAT AREA (Top Bar) --- */
+        #stat-area {
+            padding: 12px 20px;
+            background-color: #2D2D2D;
+            text-align: right;
+            font-weight: bold;
+            font-size: 1.1em;
+            border-bottom: 2px solid #3A3A3A;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #stat-area span {
+            color: #FFD700; /* Gold color */
+            margin-left: 15px;
+        }
+        #player-name {
+            color: #B0C4DE;
+        }
+
+
+        /* --- MAIN DISPLAY AREA --- */
+        #display-area {
+            height: 450px; /* Fixed height for the screen */
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-view {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transition: opacity 0.5s;
+        }
+
+        .hidden {
+            display: none !important;
+            opacity: 0;
+        }
+
+        /* --- VISUAL NOVEL (VN) STYLES --- */
+        #vn-view {
+            background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.8)), url('https://placehold.co/800x450/333333/FFFFFF?text=Dungeon+Background') center/cover no-repeat; 
+            display: flex;
+            align-items: flex-end;
+        }
+
+        #dialogue-box {
+            width: 100%;
+            min-height: 100px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px 20px;
+            box-sizing: border-box;
+            border-top: 3px solid #5A5A5A;
+        }
+
+        #dialogue-text {
+            margin: 0;
+            font-size: 1.1em;
+            line-height: 1.4;
+        }
+
+        /* --- COMBAT VIEW STYLES --- */
+        #combat-view {
+            display: grid;
+            grid-template-areas: 
+                "enemy log"
+                "player log";
+            grid-template-columns: 1fr 2fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 10px;
+            padding: 15px;
+            background-color: #222222;
+        }
+
+        #enemy-area, #player-combat-status {
+            border: 2px solid #5A5A5A;
+            border-radius: 8px;
+            padding: 15px;
+            background-color: #2D2D2D;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        #enemy-area { grid-area: enemy; }
+        #player-combat-status { grid-area: player; }
+        
+        #combat-log {
+            grid-area: log;
+            border: 2px solid #5A5A5A;
+            border-radius: 8px;
+            padding: 15px;
+            overflow-y: auto;
+            background-color: #1A1A1A;
+            max-height: 100%;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+        #combat-log strong { color: #FFD700; }
+        #combat-log em { color: #B0C4DE; } /* Status effects */
+
+
+        /* --- ACTION AREA (Bottom Buttons) --- */
+        #action-area {
+            padding: 15px 10px;
+            background-color: #2D2D2D;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 10px;
+            border-top: 3px solid #3A3A3A;
+        }
+
+        .action-button {
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            border-radius: 6px;
+            transition: background-color 0.2s, transform 0.1s;
+            box-shadow: 0 4px 0 #449d44;
+            min-width: 120px;
+        }
+
+        .action-button:hover {
+            background-color: #449d44;
+            transform: translateY(1px);
+            box-shadow: 0 3px 0 #3b8e3b;
+        }
+        
+        .action-button:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+
+        /* Specific ability colors */
+        .ability-attack { background-color: #E65100; box-shadow: 0 4px 0 #B84500; }
+        .ability-attack:hover { background-color: #B84500; }
+        .ability-utility { background-color: #1976D2; box-shadow: 0 4px 0 #1565C0; }
+        .ability-utility:hover { background-color: #1565C0; }
+        .ability-defend { background-color: #388E3C; box-shadow: 0 4px 0 #2E7D32; }
+        .ability-defend:hover { background-color: #2E7D32; }
+    </style>
 </head>
 <body>
+
     <div id="game-container">
-        <div id="display-area">
-            <p id="dialogue-text"></p>
-        </div>
-
-        <div id="action-area">
-            <button class="action-button" onclick="startGame()">Start New Run</button>
-        </div>
-
+        <!-- Area for persistent player stats -->
         <div id="stat-area">
-            HP: <span id="player-hp">100</span> | Gold: <span id="player-gold">0</span> | Floor: <span id="current-floor">1</span>
+            <span id="player-name">Select Character</span>
+            <div>
+                HP: <span id="player-hp">---</span> | 
+                Gold: <span id="player-gold">0</span> | 
+                Floor: <span id="current-floor">1</span>
+            </div>
+        </div>
+
+        <!-- MAIN DISPLAY AREA -->
+        <div id="display-area">
+            
+            <!-- VISUAL NOVEL VIEW -->
+            <div id="vn-view" class="game-view">
+                <div id="dialogue-box">
+                    <p id="dialogue-text">Welcome to the Dungeon Crawler! Choose your character below to begin a new run.</p>
+                </div>
+            </div>
+
+            <!-- COMBAT VIEW (Initially hidden) -->
+            <div id="combat-view" class="game-view hidden">
+                <div id="enemy-area">
+                    <h3 id="enemy-name">---</h3>
+                    <p id="enemy-stats"></p>
+                    <div id="enemy-status-effects"></div>
+                </div>
+                
+                <div id="player-combat-status">
+                    <h3>Your Status</h3>
+                    <p>Speed: <span id="player-speed">---</span> | Defense: <span id="player-defense">---</span></p>
+                    <div id="player-status-effects"></div>
+                </div>
+
+                <div id="combat-log">Select a character to start the adventure...</div>
+            </div>
+
+        </div>
+        
+        <!-- ACTION AREA (Shared between views) -->
+        <div id="action-area">
+            <button class="action-button ability-attack" onclick="startGame('BALTER')">Start: Balter (Grappler)</button>
+            <button class="action-button ability-utility" onclick="startGame('STRIKER')">Start: Striker (Brawler)</button>
+            <button class="action-button ability-defend" onclick="startGame('SHUTENMARU')">Start: Shuten-Maru (Speed)</button>
+            <button class="action-button ability-utility" onclick="startGame('ZECT')">Start: Zect (Switcher)</button>
         </div>
     </div>
 
-    <script src="game.js"></script>
+    <script>
+        // --- START game.js CONTENT ---
+
+        // --- 1. Character Data Definitions (Initial Rosters) ---
+
+        const CHARACTER_DATA = {
+            // Player Characters
+            BALTER: {
+                name: "Balter",
+                maxHp: 120, attack: 10, defense: 6, speed: 7, coinFlips: 2,
+            },
+            STRIKER: {
+                name: "Striker",
+                maxHp: 90, attack: 6, defense: 4, speed: 12, coinFlips: 1,
+            },
+            SHUTENMARU: {
+                name: "Shuten-Maru",
+                maxHp: 80, attack: 8, defense: 5, speed: 15, coinFlips: 1
+            },
+            ZECT: {
+                name: "Zect",
+                maxHp: 100, attack: 6, defense: 5, speed: 9, coinFlips: 2
+            },
+
+            // Enemy Example
+            GOBLIN: {
+                name: "Goblin Grunt", maxHp: 30, attack: 8, defense: 2, speed: 6, coinFlips: 1
+            }
+        };
+
+        // --- 2. Data Structures ---
+
+        /**
+         * A class for any entity in the game (Player or Enemy).
+         * Tracks core stats and temporary status effects.
+         */
+        class Character {
+            constructor(data) {
+                this.name = data.name;
+                this.maxHp = data.maxHp;
+                this.currentHp = data.maxHp;
+                
+                this.baseDefense = data.defense; 
+                this.defense = data.defense;     
+                this.baseAttack = data.attack; 
+                this.attack = data.attack;
+
+                this.baseSpeed = data.speed;
+                this.speed = data.speed;
+
+                this.baseCoinFlips = data.coinFlips;
+                this.coinFlips = data.coinFlips;
+                this.isAlive = true;
+                
+                // Status and Buff Tracking
+                this.status = {
+                    isGrappled: false,
+                    isGrappledBy: null, // Reference to the grappler
+                    isStaggered: false, // Cannot move next turn (Striker's Heavy Blow)
+                    skipperTurns: 0,    // Striker's buff duration
+                    mistyStacks: 0,     // Shuten-Maru's defense stacks
+                    momentumStacks: 0,  // Striker's damage stacks
+                    currentForm: data.name === 'Zect' ? 'Scythe' : null, // Zect's weapon form
+                    rewindUsed: false,  // Shuten-Maru's unique
+                    ironGuardActive: false, // Balter's counter state
+                    tempDefenseBonus: 0, // Used for DEFEND action
+                    tempSpeedBonus: 0, // Used for Phase/Accelerator/Rewind
+                    zectClashBonus: 0, // Zect's Trident switch bonus
+                    zectScytheHeal: false, // Zect's Scythe heal on next attack
+                    strikerRounds: 1, // Striker's Slow Start coin tracking
+                    shutenDoublePalm: false, // Shuten-Maru's Accelerator follow-up
+                    lastDamageTaken: 0, // For Shuten-Maru's Chrono-Fist
+                };
+            }
+
+            // --- Core Methods ---
+            
+            takeDamage(damage, type = 'Physical', ignoreDefense = false) {
+                let initialDamage = damage;
+
+                // Shuten-Maru's Misty Trait Check
+                if (this.name === 'Shuten-Maru' && this.status.mistyStacks > 0) {
+                    // Reduce damage as a proxy for the reduced die size
+                    initialDamage = Math.max(1, initialDamage - (this.status.mistyStacks * 2)); 
+                    currentTurn.log.push(`*Shuten-Maru's Misty stack (${this.status.mistyStacks}) dissipated, lessening the impact.*`);
+                    this.status.mistyStacks = 0; // Misty is consumed on attack
+                }
+
+                let defenseValue = ignoreDefense ? 0 : this.defense;
+                let effectiveDamage = Math.max(0, initialDamage - defenseValue);
+                this.currentHp -= effectiveDamage;
+                this.status.lastDamageTaken = effectiveDamage; // Track for Chrono-Fist
+
+                if (this.currentHp <= 0) {
+                    this.currentHp = 0;
+                    this.isAlive = false;
+                }
+
+                return effectiveDamage;
+            }
+
+            rollAttackDamage(dieSize, type = 'Physical') {
+                let baseDamage = 1 + Math.floor(Math.random() * dieSize);
+                let bonus = 0;
+                
+                // Striker Momentum Trait
+                if (this.name === 'Striker' && type === 'Physical' && this.status.momentumStacks > 0) {
+                    bonus += this.status.momentumStacks;
+                }
+                
+                // Striker Skipper Buff
+                if (this.name === 'Striker' && this.status.skipperTurns > 0) {
+                    // Skipper: Physical damage +2 (Only physical attacks will check this)
+                    if (type === 'Physical') {
+                        bonus += 2;
+                    }
+                }
+
+                // Shuten-Maru Rewind Damage Double
+                if (this.name === 'Shuten-Maru' && currentTurn.isRewindTurn) {
+                    baseDamage *= 2;
+                    currentTurn.log.push(`Shuten-Maru's damage doubled due to Rewind!`);
+                }
+
+                return baseDamage + bonus;
+            }
+
+            // --- Ability Helpers (Used in resolveTurn) ---
+
+            startDefend() {
+                // For all characters: flat +5 temp defense
+                this.status.tempDefenseBonus = 5;
+                this.defense += 5; 
+                
+                // Balter's Iron Guard
+                this.status.ironGuardActive = (this.name === 'Balter');
+                
+                currentTurn.log.push(`${this.name} braces for impact, gaining +5 Defense this turn.`);
+            }
+
+            endTurnCleanup() {
+                // Reset temporary effects
+                this.defense = this.baseDefense; 
+                this.speed = this.baseSpeed;
+                
+                this.status.tempDefenseBonus = 0;
+                this.status.tempSpeedBonus = 0;
+                
+                this.status.ironGuardActive = false;
+                this.status.isStaggered = false; 
+                this.status.zectClashBonus = 0;
+                this.status.zectScytheHeal = false;
+                
+                // Striker's Slow Start (Coin increase)
+                if (this.name === 'Striker' && gameState.state === 'COMBAT') {
+                    // Increase coins for the next turn
+                    this.status.strikerRounds++;
+                    this.coinFlips = this.baseCoinFlips + (this.status.strikerRounds * 2); 
+                }
+
+                // Striker's Skipper Countdown
+                if (this.name === 'Striker' && this.status.skipperTurns > 0) {
+                    this.status.skipperTurns--;
+                    if (this.status.skipperTurns === 0) {
+                        this.defense = this.baseDefense; // Restore halved defense
+                        this.coinFlips = this.baseCoinFlips + (this.status.strikerRounds * 2); // Restore coin calculation
+                        currentTurn.log.push(`Striker's Skipper buff ends. Defense restored.`);
+                    }
+                }
+            }
+        }
+
+        // Global Game State Object
+        const gameState = {
+            player: null,
+            currentFloor: 1,
+            currentGold: 0,
+            currentEnemy: null,
+            state: 'MENU', // States: 'MENU', 'VN_EVENT', 'COMBAT', 'GAME_OVER'
+            playerCharacterKey: null,
+            rewindState: null, // Stores the state before Shuten-Maru's turn
+        };
+
+        // Global State for the current combat turn
+        let currentTurn = {
+            playerAction: null, 
+            enemyAction: null,
+            actionPerformer: null, 
+            log: [],
+            isRewindTurn: false, 
+            staggeredEntity: null,
+        };
+
+
+        // --- General Utility Functions ---
+
+        function updateStatsDisplay() {
+            const player = gameState.player;
+            if (player) {
+                document.getElementById('player-name').textContent = player.name;
+                document.getElementById('player-hp').textContent = `${player.currentHp}/${player.maxHp}`;
+                document.getElementById('player-gold').textContent = gameState.currentGold;
+                document.getElementById('current-floor').textContent = gameState.currentFloor;
+                
+                // Update combat status display
+                if (gameState.state === 'COMBAT') {
+                    document.getElementById('player-speed').textContent = player.speed;
+                    document.getElementById('player-defense').textContent = player.defense;
+                    // Simplified status display (can be improved later)
+                    const statusText = [];
+                    if (player.status.isStaggered) statusText.push('STAGGERED');
+                    if (player.status.skipperTurns > 0) statusText.push(`SKIPPER (${player.status.skipperTurns})`);
+                    if (player.status.momentumStacks > 0) statusText.push(`MOMENTUM (+${player.status.momentumStacks} Dmg)`);
+                    if (player.status.currentForm) statusText.push(player.status.currentForm.toUpperCase());
+
+                    document.getElementById('player-status-effects').innerHTML = statusText.length > 0 ? statusText.join(' | ') : 'Clear';
+                    
+                    const enemy = gameState.currentEnemy;
+                    if (enemy) {
+                        const enemyStatusText = [];
+                        if (enemy.status.isGrappled) enemyStatusText.push(`GRAPPLED by ${enemy.status.isGrappledBy.name}`);
+                        
+                        document.getElementById('enemy-status-effects').innerHTML = enemyStatusText.length > 0 ? enemyStatusText.join(' | ') : 'Clear';
+                        document.getElementById('enemy-stats').innerHTML = `HP: ${enemy.currentHp}/${enemy.maxHp} | Speed: ${enemy.speed} | Defense: ${enemy.defense}`;
+                    }
+                }
+            }
+        }
+
+        function displayDialogue(text) {
+            document.getElementById('dialogue-text').innerHTML = text;
+        }
+
+        function clearActions() {
+            document.getElementById('action-area').innerHTML = '';
+        }
+
+        function showView(viewId) {
+            // Hide all view containers
+            document.querySelectorAll('.game-view').forEach(view => {
+                view.classList.add('hidden');
+            });
+            // Show the requested view container
+            document.getElementById(viewId).classList.remove('hidden');
+        }
+
+
+        // --- Game Loop and Flow Functions ---
+
+        function startGame(chosenCharacterKey) {
+            gameState.playerCharacterKey = chosenCharacterKey;
+            gameState.player = new Character(CHARACTER_DATA[chosenCharacterKey]);
+            gameState.currentFloor = 1;
+            gameState.currentGold = 0;
+            gameState.state = 'VN_EVENT'; 
+            gameState.player.status.strikerRounds = 1; // Reset Striker's coin growth
+
+            updateStatsDisplay();
+            displayDialogue(`A new journey begins... You chose **${gameState.player.name}**!`);
+            
+            clearActions();
+            showView('vn-view'); 
+            nextRunStage();
+        }
+
+        function nextRunStage() {
+            if (gameState.state === 'COMBAT') {
+                gameState.currentFloor++;
+            }
+            
+            updateStatsDisplay();
+            clearActions();
+            
+            const encounterType = Math.floor(Math.random() * 3); // 0=Combat, 1=Event, 2=Shop
+            
+            if (encounterType === 0) {
+                startCombat();
+            } else if (encounterType === 1) {
+                startVNEvent();
+            } else {
+                startShop();
+            }
+        }
+
+        function startVNEvent() {
+            gameState.state = 'VN_EVENT';
+            showView('vn-view');
+            displayDialogue("You find a hidden shrine. Do you **PRAY** for luck or **SMASH** it for loot?");
+            
+            const actionArea = document.getElementById('action-area');
+            actionArea.innerHTML = `
+                <button class="action-button ability-defend" onclick="handleVNChoice('PRAY')">Pray (+HP)</button>
+                <button class="action-button ability-utility" onclick="handleVNChoice('SMASH')">Smash (+Gold)</button>
+            `;
+        }
+
+        function handleVNChoice(choice) {
+            if (choice === 'PRAY') {
+                gameState.player.currentHp = Math.min(gameState.player.maxHp, gameState.player.currentHp + 10);
+                displayDialogue("You feel invigorated. (+10 HP)");
+            } else if (choice === 'SMASH') {
+                gameState.currentGold += 5;
+                displayDialogue("You find a few rusty coins. (+5 Gold)");
+            }
+            updateStatsDisplay();
+            
+            clearActions();
+            document.getElementById('action-area').innerHTML = `<button class="action-button" onclick="nextRunStage()">Continue Deeper</button>`;
+        }
+
+        function startShop() {
+            gameState.state = 'SHOP';
+            showView('vn-view');
+            displayDialogue("You find a dusty merchant. What would you like to buy?");
+            clearActions();
+            const actionArea = document.getElementById('action-area');
+            actionArea.innerHTML = `
+                <button class="action-button" onclick="nextRunStage()">Leave Shop</button>
+            `;
+        }
+
+
+        // --- Combat Functions ---
+
+        function startCombat() {
+            gameState.state = 'COMBAT';
+            showView('combat-view');
+            
+            // Enemy Initialization (using Goblin for now)
+            gameState.currentEnemy = new Character(CHARACTER_DATA.GOBLIN);
+            
+            displayCombatOptions();
+        }
+
+        function displayCombatOptions() {
+            const player = gameState.player;
+            const enemy = gameState.currentEnemy;
+            
+            // 1. Clean up from last turn and reset stats
+            player.endTurnCleanup(); 
+            enemy.endTurnCleanup();
+            currentTurn.isRewindTurn = false; 
+
+            // Check for stagger (from Striker's Heavy Blow)
+            if (player.status.isStaggered) {
+                currentTurn.log.push(`${player.name} is Staggered and cannot move this turn.`);
+                // Immediately run enemy turn
+                handlePlayerAction('STAGGERED'); 
+                return;
+            }
+
+            // 2. Update UI
+            document.getElementById('combat-log').innerHTML = currentTurn.log.join('<br>');
+            updateStatsDisplay();
+            
+            // 3. Display Player Abilities
+            let abilitiesHTML = getPlayerAbilities(player);
+            
+            displayDialogue(`Your Move: **${enemy.name}** (HP: ${enemy.currentHp}) vs. **${player.name}** (HP: ${player.currentHp})`);
+            document.getElementById('action-area').innerHTML = abilitiesHTML;
+        }
+
+        function getPlayerAbilities(player) {
+            let html = '';
+            
+            // Always include a basic DEFEND/GUARD option
+            const guardAction = player.name === 'Balter' ? 'IRONGUARD' : 'DEFEND';
+            html += `<button class="action-button ability-defend" onclick="handlePlayerAction('${guardAction}')">${guardAction === 'IRONGUARD' ? 'Iron Guard (Counter)' : 'Guard (Block)'}</button>`;
+
+            if (player.name === 'Balter') {
+                html += `<button class="action-button ability-attack" onclick="handlePlayerAction('HAYMAKER')">Haymaker (1d10)</button>`;
+                html += `<button class="action-button ability-utility" onclick="handlePlayerAction('GRAPPLE')">Grapple (Str Check)</button>`;
+                if (gameState.currentEnemy.status.isGrappled) {
+                    html += `<button class="action-button ability-attack" onclick="handlePlayerAction('PILEDRIVER')">Piledriver (20 Dmg)</button>`;
+                }
+            } else if (player.name === 'Striker') {
+                html += `<button class="action-button ability-attack" onclick="handlePlayerAction('DRAGONTWISTER')">Dragon Twister (1d6)</button>`;
+                html += `<button class="action-button ability-utility" onclick="handlePlayerAction('SKIPPER')">Skipper (Buff)</button>`;
+                html += `<button class="action-button ability-attack" onclick="handlePlayerAction('DISRUPTIVELUNGE')">Disruptive Lunge (1d4, Clash)</button>`;
+                html += `<button class="action-button ability-attack" onclick="handlePlayerAction('HEAVYBLOW')">Heavy Blow (20, Stagger)</button>`;
+            } else if (player.name === 'Shuten-Maru') {
+                html += `<button class="action-button ability-attack" onclick="handlePlayerAction('GHOSTPALM')">Ghost Palm (1d8 Psychic)</button>`;
+                html += `<button class="action-button ability-defend" onclick="handlePlayerAction('PHASE')">Phase (Misty/Speed)</button>`;
+                html += `<button class="action-button ability-attack" onclick="handlePlayerAction('ACCELERATOR')">Accelerator (1d4 Force)</button>`;
+                if (!player.status.rewindUsed) {
+                    html += `<button class="action-button ability-utility" onclick="handlePlayerAction('REWIND')">Rewind (Once Per Combat)</button>`;
+                }
+            } else if (player.name === 'Zect') {
+                const form = player.status.currentForm;
+                const attackDie = form === 'Scythe' ? '1d6 Dark' : (form === 'Trident' ? '1d8 Force' : '1d12 Physical');
+                html += `<button class="action-button ability-attack" onclick="handlePlayerAction('TRI-SWORD')">Tri-Sword (${attackDie})</button>`;
+                html += `<button class="action-button ability-utility" onclick="handlePlayerAction('SWITCH')">Switch (to ${form === 'Scythe' ? 'Trident' : (form === 'Trident' ? 'Hammer' : 'Scythe')})</button>`;
+            }
+
+            return html;
+        }
+
+        function handlePlayerAction(action) {
+            // Save state for potential Shuten-Maru Rewind
+            gameState.rewindState = JSON.stringify({
+                player: gameState.player,
+                enemy: gameState.currentEnemy,
+                currentLog: currentTurn.log
+            });
+
+            currentTurn.playerAction = action;
+            
+            if (action === 'PILEDRIVER' && !gameState.currentEnemy.status.isGrappled) {
+                currentTurn.log.push("Piledriver failed: Target must be Grappled!");
+                displayCombatOptions();
+                return;
+            }
+
+            // 1. Enemy chooses its action (Simple AI: 70% Attack, 30% Defend)
+            currentTurn.enemyAction = (Math.random() < 0.7) ? 'ATTACK' : 'DEFEND';
+            
+            // 2. Resolve the turn
+            resolveTurn();
+        }
+
+        // --- CORE RESOLUTION LOGIC ---
+
+        function resolveTurn() {
+            const player = gameState.player;
+            const enemy = gameState.currentEnemy;
+            currentTurn.log = [];
+
+            // Disallow CLASH if Grappled
+            const cannotClash = player.status.isGrappled || enemy.status.isGrappled;
+
+            // --- 3. Check for CLASH ---
+            const playerAttackActions = ['HAYMAKER', 'DRAGONTWISTER', 'GHOSTPALM', 'TRI-SWORD'];
+            
+            let isClash = !cannotClash && playerAttackActions.includes(currentTurn.playerAction) && currentTurn.enemyAction === 'ATTACK';
+
+            // Striker's Disruptive Lunge forces a clash (Special Case)
+            if (!cannotClash && currentTurn.playerAction === 'DISRUPTIVELUNGE') {
+                const playerIsSlower = player.speed < enemy.speed;
+                if (playerIsSlower) {
+                    isClash = true; // Force clash regardless of enemy action
+                    currentTurn.log.push(`Striker's Disruptive Lunge forces a Clash!`);
+                }
+            }
+
+            if (isClash) {
+                runClash(player, enemy);
+            } 
+            // --- 4. Resolve Standard Actions (Speed Dependent) ---
+            else {
+                const playerIsFaster = player.speed >= enemy.speed;
+                
+                const resolutionOrder = playerIsFaster ? 
+                    [{ entity: player, action: currentTurn.playerAction, target: enemy }] :
+                    [{ entity: enemy, action: currentTurn.enemyAction, target: player }];
+                
+                resolutionOrder.push(playerIsFaster ? 
+                    { entity: enemy, action: currentTurn.enemyAction, target: player } :
+                    { entity: player, action: currentTurn.playerAction, target: enemy }
+                );
+
+                for (const { entity, action, target } of resolutionOrder) {
+                    if (!entity.isAlive || !target.isAlive || action === 'STAGGERED') continue; 
+                    currentTurn.actionPerformer = entity;
+
+                    // Execute ability based on chosen action
+                    if (action === 'DEFEND' || action === 'IRONGUARD') {
+                        entity.startDefend();
+                    } else if (action === 'ATTACK') { // Enemy basic attack
+                        handleAttackAction(entity, target, enemy.attack, 'Physical');
+                    } else {
+                        // Player specific abilities (placeholders for now)
+                        if (action === 'HAYMAKER') handleAttackAction(entity, target, 10, 'Physical');
+                        else if (action === 'GRAPPLE') handleGrapple(entity, target);
+                        else if (action === 'PILEDRIVER') handlePiledriver(entity, target);
+                        else if (action === 'DRAGONTWISTER') handleAttackAction(entity, target, 6, 'Physical');
+                        else if (action === 'SKIPPER') handleSkipper(entity);
+                        else if (action === 'HEAVYBLOW') handleHeavyBlow(entity, target);
+                        else if (action === 'GHOSTPALM') handleAttackAction(entity, target, 8, 'Psychic');
+                        else if (action === 'PHASE') handlePhase(entity);
+                        else if (action === 'ACCELERATOR') handleAccelerator(entity, target);
+                        else if (action === 'REWIND') { if (handleRewind(entity)) return; } // If rewind happens, break loop and restart turn
+                        else if (action === 'TRI-SWORD') handleTriSword(entity, target);
+                        else if (action === 'SWITCH') handleSwitch(entity);
+                    }
+                }
+
+                // --- Balter's Iron Guard Counter Trait Check ---
+                // If Balter used Iron Guard (DEFEND) AND enemy attacked, AND Balter avoided the attack (or mitigated it significantly)
+                if (player.name === 'Balter' && player.status.ironGuardActive && currentTurn.enemyAction === 'ATTACK') {
+                    // Check if the enemy attack was NOT fully blocked by the speed check (i.e., Balter was slower or speeds were equal)
+                    const balterIsFaster = player.speed > enemy.speed;
+                    if (!balterIsFaster) {
+                         // Attack resolved fully or with defense reduction, so counter fires.
+                        currentTurn.log.push(`Balter's Iron Guard triggers a free Haymaker counter!`);
+                        handleAttackAction(player, enemy, 10, 'Physical', true); // True = free attack, no speed check
+                    }
+                }
+            }
+
+            // 5. Check for End of Combat
+            endTurnChecks();
+        }
+
+        // --- ABILITY IMPLEMENTATIONS (Placeholders) ---
+
+        function handleSkipper(striker) {
+            striker.status.skipperTurns = 2;
+            striker.defense = Math.floor(striker.defense / 2); // Defense halved
+            currentTurn.log.push(`Striker activates Skipper! Defense halved, physical damage +2, and coins always Heads for 2 turns.`);
+        }
+
+        function handleHeavyBlow(striker, target) {
+            const damage = 20;
+            const damageTaken = target.takeDamage(damage, 'Physical');
+            striker.status.isStaggered = true; // Stagger next turn
+            currentTurn.log.push(`Striker hits Heavy Blow for ${damageTaken} damage! Striker is **STAGGERED** next turn.`);
+        }
+
+        function handlePhase(shuten) {
+            const speedIncrease = 15; // Drastically increase speed
+            shuten.status.tempSpeedBonus = speedIncrease;
+            shuten.speed += speedIncrease;
+            
+            if (shuten.status.mistyStacks < 3) shuten.status.mistyStacks++;
+            
+            currentTurn.log.push(`Shuten-Maru phases! Speed greatly increased. Gains 1 stack of Misty (${shuten.status.mistyStacks}).`);
+        }
+
+        function handleAccelerator(shuten, target) {
+            const damage = shuten.rollAttackDamage(4, 'Force'); // 1d4 Force damage
+            const shutenIsFaster = shuten.speed > target.speed;
+
+            if (shutenIsFaster) {
+                target.takeDamage(damage, 'Force', true); // Bypass everything
+                currentTurn.log.push(`Shuten-Maru is faster! Accelerator bypasses all defense for ${damage} Force damage.`);
+
+                if (currentTurn.enemyAction === 'ATTACK') {
+                    shuten.status.shutenDoublePalm = true;
+                    currentTurn.log.push(`Ghost Palm ready to hit twice next time!`);
+                }
+            } else {
+                 target.takeDamage(damage, 'Force');
+                 currentTurn.log.push(`Accelerator hits for ${damage} Force damage (Defended).`);
+            }
+        }
+        
+        function handleRewind(shuten) {
+            if (shuten.status.rewindUsed) return false;
+            
+            try {
+                const oldState = JSON.parse(gameState.rewindState);
+                if (!oldState) throw new Error("No previous state saved.");
+
+                // Restore state
+                Object.assign(shuten, oldState.player);
+                Object.assign(gameState.currentEnemy, oldState.enemy);
+                currentTurn.log = oldState.currentLog;
+
+                shuten.status.rewindUsed = true;
+                currentTurn.isRewindTurn = true; // Flag for double damage roll
+                
+                // Gain drastic speed for this turn (must be set before re-prompting action)
+                const speedIncrease = 20;
+                shuten.status.tempSpeedBonus = speedIncrease;
+                shuten.speed += speedIncrease;
+
+                currentTurn.log.push(`**REWIND SUCCESS!** Actions undone. Shuten-Maru gains drastic speed and doubled damage this turn.`);
+                
+                // Re-prompt player action
+                displayCombatOptions(); 
+                return true; // Rewind successfully executed
+            } catch (e) {
+                console.error("Rewind failed:", e);
+                shuten.status.rewindUsed = true; // Prevent trying again if it failed
+                currentTurn.log.push(`Rewind failed due to state error.`);
+                return false;
+            }
+        }
+
+        function handleTriSword(zect, target) {
+            const form = zect.status.currentForm;
+            let dieSize, type, className;
+
+            if (form === 'Scythe') { dieSize = 6; type = 'Dark'; className = 'ability-attack'; }
+            else if (form === 'Trident') { dieSize = 8; type = 'Force'; className = 'ability-attack'; }
+            else { dieSize = 12; type = 'Physical'; className = 'ability-attack'; }
+
+            const damage = zect.rollAttackDamage(dieSize, type);
+            const damageTaken = target.takeDamage(damage, type);
+
+            // Scythe Form Heal Bonus
+            if (form === 'Scythe' && damageTaken > 0) {
+                const heal = damageTaken;
+                zect.currentHp = Math.min(zect.maxHp, zect.currentHp + heal);
+                currentTurn.log.push(`Zect's Scythe Form: Heals for ${heal} HP.`);
+            }
+
+            currentTurn.log.push(`Zect attacks with ${form} for ${damageTaken} ${type} damage.`);
+        }
+
+        function handleSwitch(zect) {
+            const current = zect.status.currentForm;
+            let next, bonusMsg = "";
+
+            if (current === 'Scythe') {
+                next = 'Trident';
+                zect.status.zectClashBonus = 2;
+                bonusMsg = "Gains +2 damage to the next CLASH.";
+            } else if (current === 'Trident') {
+                next = 'Hammer';
+                zect.baseDefense += 1; // Permanent until next switch
+                zect.defense += 1;
+                bonusMsg = "Gains +1 Defense (permanent until next Switch).";
+            } else { // Hammer
+                next = 'Scythe';
+                // Reset Hammer defense bonus first
+                if (zect.status.currentForm === 'Hammer') {
+                    zect.baseDefense -= 1;
+                    zect.defense -= 1;
+                }
+                // Scythe heal is handled in Tri-Sword
+                bonusMsg = "Next attack heals Zect for damage dealt.";
+            }
+
+            zect.status.currentForm = next;
+            currentTurn.log.push(`Zect switches to **${next} Form**! ${bonusMsg}`);
+        }
+        
+        // Balter's Grapple logic (used in resolveTurn)
+        function handleGrapple(grappler, target) {
+            const grapplerRoll = 1 + Math.floor(Math.random() * 10);
+            const targetRoll = 1 + Math.floor(Math.random() * 8); // Proxy for Str stat (d8 avg)
+
+            if (grapplerRoll > targetRoll) {
+                target.status.isGrappled = true;
+                target.status.isGrappledBy = grappler;
+                target.speed = Math.max(1, target.baseSpeed - 5);
+                currentTurn.log.push(`**Grapple SUCCESS!** ${target.name}'s speed is reduced and all Clashes will fail.`);
+            } else {
+                currentTurn.log.push(`Grapple failed. ${target.name} resisted the attempt!`);
+            }
+        }
+
+        // Balter's Piledriver logic (used in resolveTurn)
+        function handlePiledriver(attacker, target) {
+            if (!target.status.isGrappled) return; 
+
+            const damage = 20;
+            const damageTaken = target.takeDamage(damage, 'Physical', true); // True = Ignore defense
+            
+            // Ends the grapple
+            target.status.isGrappled = false;
+            target.status.isGrappledBy = null;
+            target.speed = target.baseSpeed; // Restore speed
+
+            currentTurn.log.push(`**PILEDRIVER!** ${target.name} takes ${damageTaken} damage! Grapple ends.`);
+        }
+
+        // Standard Attack Logic (used in resolveTurn)
+        function handleAttackAction(attacker, defender, dieSize, type, isFreeAttack = false) {
+            const defenderAction = (defender === gameState.player) ? currentTurn.playerAction : currentTurn.enemyAction;
+            const defenderIsFaster = defender.speed > attacker.speed;
+            
+            // --- SPEED-BLOCK LOGIC ---
+            if (defenderAction === 'DEFEND' && defenderIsFaster && !isFreeAttack) {
+                currentTurn.log.push(`*${defender.name} is faster and successfully defended!* The attack misses.`);
+                return;
+            }
+
+            let baseDamage = attacker.rollAttackDamage(dieSize, type);
+            let damageTaken = defender.takeDamage(baseDamage, type);
+            
+            currentTurn.log.push(`${attacker.name} attacks ${defender.name} (${type}) for **${damageTaken}** damage!`);
+            
+            // Striker Momentum Trait Cleanup
+            if (attacker.name === 'Striker' && type === 'Physical') {
+                attacker.status.momentumStacks = 0; // Clear stacks after hit
+            }
+        }
+
+
+        // Clash Logic (used in resolveTurn)
+        function flipCoins(numCoins, entity) {
+            let heads = 0;
+            if (entity.name === 'Striker' && entity.status.skipperTurns > 0) {
+                heads = numCoins; 
+            } else {
+                for (let i = 0; i < numCoins; i++) {
+                    if (Math.random() >= 0.5) { heads++; }
+                }
+            }
+            return heads;
+        }
+
+        function runClash(p1, p2) {
+            if (p1.status.isGrappled || p2.status.isGrappled) {
+                const grappledEntity = p1.status.isGrappled ? p1 : p2;
+                const winner = grappledEntity === p1 ? p2 : p1;
+                currentTurn.log.push(`The Clash is nullified! **${grappledEntity.name}** fails. ${winner.name} gets a free attack.`);
+                handleAttackAction(winner, grappledEntity, winner.attack, 'Physical', true); 
+                return;
+            }
+            
+            let p1Coins = p1.coinFlips;
+            let p2Coins = p2.coinFlips;
+            
+            // Zect's Homogenous Trait (Simplified: assumes opponent is 'woman' for clash)
+            const isZect = p1.name === 'Zect' || p2.name === 'Zect';
+            if (isZect) {
+                const zect = p1.name === 'Zect' ? p1 : p2;
+                if (zect === p1) p1Coins *= 2;
+                else p2Coins *= 2;
+            }
+            
+            let p1Heads = flipCoins(p1Coins, p1);
+            let p2Heads = flipCoins(p2Coins, p2);
+            
+            currentTurn.log.push(`***CLASH!***`);
+            currentTurn.log.push(`${p1.name}: ${p1Heads} Heads (of ${p1Coins} coins).`);
+            currentTurn.log.push(`${p2.name}: ${p2Heads} Heads (of ${p2Coins} coins).`);
+
+            let winner, loser;
+            if (p1Heads > p2Heads) { winner = p1; loser = p2; } 
+            else if (p2Heads > p1Heads) { winner = p2; loser = p1; } 
+            else {
+                let p1Taken = p1.takeDamage(p2.rollAttackDamage(p2.attack));
+                let p2Taken = p2.takeDamage(p1.rollAttackDamage(p1.attack));
+                currentTurn.log.push(`The clash is a DRAW! Both take damage.`);
+                return;
+            }
+
+            let winnerHeads = (winner === p1) ? p1Heads : p2Heads;
+            let bonusDamage = winnerHeads * 2;
+            
+            if (winner.name === 'Zect') bonusDamage *= 2;
+            bonusDamage += winner.status.zectClashBonus;
+
+            let baseDamage = winner.rollAttackDamage(winner.attack);
+            let totalDamage = baseDamage + bonusDamage;
+            let damageTaken = loser.takeDamage(totalDamage);
+            
+            currentTurn.log.push(`**${winner.name} WINS** the clash! Hits for **${damageTaken}** damage.`);
+
+            // --- Winner Traits ---
+            if (winner.name === 'Balter') {
+                const extraDie = loser.status.isGrappled ? 6 : 4;
+                const extraDmg = 1 + Math.floor(Math.random() * extraDie);
+                const dmgTaken = loser.takeDamage(extraDmg, 'Physical', true);
+                currentTurn.log.push(`Balter's Old One-Two! Extra hit for ${dmgTaken} damage.`);
+            }
+            
+            if (winner.name === 'Striker') {
+                if (winner.status.momentumStacks < 3) winner.status.momentumStacks++;
+                currentTurn.log.push(`Striker gains a stack of Momentum (${winner.status.momentumStacks}).`);
+            }
+        }
+
+
+        function endTurnChecks() {
+            const player = gameState.player;
+            const enemy = gameState.currentEnemy;
+            
+            document.getElementById('combat-log').innerHTML = currentTurn.log.join('<br>');
+            
+            if (!player.isAlive) {
+                gameState.state = 'GAME_OVER';
+                clearActions();
+                document.getElementById('action-area').innerHTML = `<p>Game Over. You perished on Floor ${gameState.currentFloor}!</p><button class="action-button" onclick="startGame('${gameState.playerCharacterKey}')">Try Again?</button>`;
+                showView('vn-view');
+            } else if (!enemy.isAlive) {
+                gameState.currentGold += 10;
+                displayDialogue(currentTurn.log.join('<br>') + `<br><br>**VICTORY!** The ${enemy.name} is defeated! You gained 10 Gold.`);
+                clearActions();
+                document.getElementById('action-area').innerHTML = `<button class="action-button" onclick="nextRunStage()">Continue Deeper</button>`;
+                showView('vn-view');
+            } else {
+                document.getElementById('action-area').innerHTML = `<button class="action-button" onclick="displayCombatOptions()">End Turn & Continue</button>`;
+            }
+            
+            updateStatsDisplay();
+        }
+        // --- END game.js CONTENT ---
+    </script>
 </body>
 </html>
