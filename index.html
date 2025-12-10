@@ -1,1441 +1,324 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Dungeon Crawler: Character Combat</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Base Configuration - Applies to all themes */
-        body {
-            font-family: 'Inter', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 0; 
-            transition: background-color 0.5s, color 0.5s;
-        }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>The Dungeon Crawler: Character Combat</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+/* Base Configuration */
+body {
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0; 
+    transition: background-color 0.5s, color 0.5s;
+}
+#game-container {
+    width: 98vw; 
+    max-width: 1200px; 
+    height: 98vh; 
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.5s;
+}
+/* Themes ... (unchanged, keep your existing CSS) */
 
-        #game-container {
-            width: 98vw; 
-            max-width: 1200px; 
-            height: 98vh; 
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            transition: all 0.5s;
-        }
-
-        /* --- THEMES (Adjusted for No Outline/Cream) --- */
-
-        /* Default Theme: Cream/Black */
-        .theme-default {
-            background-color: #E0E0E0; 
-            color: #121212;
-        }
-        .theme-default #game-container {
-            background-color: #F8F8F0; /* Cream background for container */
-            border: 2px solid #333333;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-        }
-        /* Button styling for Default (Cream) theme - NO OUTLINE */
-        .theme-default .action-button, .theme-default .choice-card {
-            background-color: #F0EFE3; /* Off-white/Cream button */
-            color: #121212;
-            border: none !important; /* Removed outline */
-            box-shadow: none; 
-            border-radius: 6px;
-        }
-        .theme-default .action-button:hover, .theme-default .choice-card:hover { 
-            background-color: #E0E0D0; 
-        }
-        .theme-default #combat-log, .theme-default #dialogue-box, #combat-dialogue-box {
-            background-color: #FFFFFF;
-            border: 1px solid #CCCCCC;
-        }
-        .theme-default .stat-item span { color: #008CBA; }
-
-
-        /* --- UI COMPONENTS --- */
-
-        #stat-area {
-            padding: 10px 20px;
-            font-weight: bold;
-            font-size: 1em;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: inherit; 
-        }
-
-        #display-area {
-            flex-grow: 1; 
-            position: relative;
-            overflow: hidden;
-        }
-
-        .game-view {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            box-sizing: border-box;
-            text-align: center;
-        }
-
-        .hidden { display: none !important; }
-
-        /* Main Menu/Char Select Styles */
-        .title { font-size: 2.5em; margin-bottom: 50px; font-weight: 900; }
-        .choice-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            max-width: 600px;
-            margin: auto;
-        }
-        .choice-card {
-            padding: 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.2s, border-color 0.2s;
-            text-align: left;
-        }
-
-        /* --- COMBAT LAYOUT --- */
-        #combat-view {
-            display: grid;
-            grid-template-columns: 2.5fr 1fr; 
-            grid-template-rows: auto 3fr auto; 
-            gap: 10px;
-            padding: 15px;
-        }
-        
-        #combat-header {
-            grid-column: 1 / 2;
-            grid-row: 1 / 2;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            padding: 0 15px;
-        }
-
-        #image-animation-area {
-            grid-column: 1 / 2;
-            grid-row: 2 / 3;
-            border-radius: 8px;
-            background-color: rgba(128, 128, 128, 0.1);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 15px;
-        }
-        
-        #animation-output {
-            font-size: 3em;
-            font-weight: 800;
-            min-height: 50px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-            transition: opacity 0.3s;
-        }
-        
-        #coin-animation-area {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px;
-            max-width: 80%;
-            min-height: 100px;
-            padding: 10px;
-        }
-        .coin-flip {
-            font-size: 2.5em;
-            width: 40px;
-            height: 40px;
-            line-height: 40px;
-            text-align: center;
-            border-radius: 50%;
-            background-color: gold;
-            color: brown;
-            transition: transform 0.5s ease-out;
-            transform: rotateY(0deg);
-        }
-        .coin-flip.heads { background-color: #FFD700; color: #121212; }
-        .coin-flip.tails { background-color: #B87333; color: white; }
-        @keyframes flip {
-            0% { transform: scale(1) rotateY(0deg); }
-            50% { transform: scale(1.5) rotateY(180deg); }
-            100% { transform: scale(1) rotateY(360deg); }
-        }
-
-
-        #combat-dialogue-box {
-            grid-column: 1 / 2;
-            grid-row: 3 / 4;
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-size: 1.1em;
-            line-height: 1.5;
-            min-height: 70px;
-            display: flex;
-            align-items: center;
-        }
-
-        #combat-log {
-            grid-column: 2 / 3;
-            grid-row: 1 / 4; 
-            padding: 10px;
-            border-radius: 8px;
-            overflow-y: scroll;
-            font-size: 0.9em;
-            line-height: 1.4;
-            max-height: 100%;
-        }
-        #combat-log strong { font-weight: 800; }
-
-        /* --- Health Bar Styling --- */
-        .health-bar-container {
-            width: 250px;
-            height: 20px;
-            background-color: rgba(128, 128, 128, 0.3);
-            border: 1px solid;
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 5px;
-        }
-        .health-bar {
-            height: 100%;
-            background-color: #CC3333; /* Deep Red for Health */
-            width: 100%; 
-            transition: width 0.5s ease-in-out;
-            text-align: right;
-            line-height: 20px;
-            color: white;
-            font-size: 0.8em;
-            font-weight: bold;
-            padding-right: 5px;
-            box-sizing: border-box;
-        }
-        .health-bar.low { background-color: #990000; } /* Darker red when low */
-
-
-        /* --- ACTION AREA (Bottom Buttons) --- */
-        #action-area {
-            padding: 15px 10px;
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 10px;
-            border-top: inherit;
-        }
-        .action-button {
-            border: none !important; /* Removed outline */
-            padding: 12px 25px;
-            cursor: pointer;
-            font-size: 1em;
-            font-weight: bold;
-            border-radius: 6px;
-            transition: background-color 0.2s, transform 0.1s;
-            min-width: 150px;
-        }
-        .action-button:active { transform: translateY(0px); box-shadow: none !important; }
-
-        /* Specific ability colors - using a subtle border for classification since outline is removed */
-        .ability-attack { border: 1px solid #E65100 !important; }
-        .ability-utility { border: 1px solid #1976D2 !important; }
-    </style>
+/* UI Components (move attack buttons to left, portrait on right, hover tooltip, etc.) */
+#combat-view {
+    display: grid;
+    grid-template-columns: 2.5fr 1fr; 
+    grid-template-rows: auto 3fr auto; 
+    gap: 10px;
+    padding: 15px;
+}
+#attack-area {
+    grid-column: 1 / 2;
+    grid-row: 2 / 3;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* move to left side */
+    gap: 10px;
+}
+#portrait-area {
+    grid-column: 2 / 3;
+    grid-row: 2 / 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+#portrait-container {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin-bottom: 10px;
+}
+#portrait {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    object-fit: cover;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border 0.3s, box-shadow 0.3s;
+}
+#portrait:hover {
+    border: 2px solid #333;
+    box-shadow: 0 0 10px #666;
+}
+.tooltip {
+    position: absolute;
+    top: -10px;
+    right: 110%;
+    background: #fff;
+    padding: 8px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    max-width: 250px;
+    font-size: 0.9em;
+    display: none;
+    z-index: 100;
+}
+#inventory-button {
+    margin-top: 10px;
+}
+#combat-log {
+    grid-column: 1 / 2;
+    grid-row: 3 / 4;
+    overflow-y: auto;
+    max-height: 600px; /* lengthen log from start */
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    font-family: monospace;
+    font-size: 0.9em;
+    line-height: 1.4;
+}
+#visual-area {
+    grid-column: 2 / 3;
+    grid-row: 1 / 4;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+#visual-content {
+    font-size: 1.5em;
+    min-height: 50px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    transition: opacity 0.3s;
+}
+#clash-area {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+}
+.coin-flip {
+    font-size: 2.5em;
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    text-align: center;
+    border-radius: 50%;
+    background-color: gold;
+    color: brown;
+    transition: transform 0.8s ease-out, box-shadow 0.3s;
+}
+.coin-flip.heads { background-color: #FFD700; color: #121212; }
+.coin-flip.tails { background-color: #B87333; color: white; }
+/* Spark animation for clash */
+@keyframes bounceSpin {
+  0% { transform: rotateY(0deg) scale(1); }
+  50% { transform: rotateY(180deg) scale(1.2); box-shadow: 0 0 20px #ff0; }
+  100% { transform: rotateY(360deg) scale(1); box-shadow: none; }
+}
+.flip-animate {
+    animation: bounceSpin 0.8s forwards;
+}
+</style>
 </head>
 <body class="theme-default">
-
-    <div id="game-container">
-        <!-- Area for persistent player stats -->
-        <div id="stat-area">
-            <span id="player-name">---</span>
-            <div>
-                <span class="stat-item">HP: <span id="player-hp">---</span></span>
-                <span class="stat-item">Gold: <span id="player-gold">0</span></span>
-                <span class="stat-item">Floor: <span id="current-floor">---</span></span>
-            </div>
-        </div>
-
-        <!-- MAIN DISPLAY AREA (Container for all screens) -->
-        <div id="display-area">
-            
-            <!-- 1. MAIN MENU VIEW -->
-            <div id="menu-view" class="game-view">
-                <h1 class="title">The Dungeon Crawler</h1>
-                <div style="display: flex; flex-direction: column; gap: 20px;">
-                    <button class="action-button" style="min-width: 200px;" onclick="showCharSelect()">New Game</button>
-                    <button class="action-button" style="min-width: 200px;" disabled>Load Game (Coming Soon)</button>
-                    <button class="action-button" style="min-width: 200px;" onclick="showSettings()">Settings</button>
-                </div>
-            </div>
-
-            <!-- 2. CHARACTER SELECT VIEW (Initially hidden) -->
-            <div id="char-select-view" class="game-view hidden">
-                <h1 class="title">Choose Your Champion</h1>
-                <div class="choice-grid">
-                    <div class="choice-card" onclick="startGame('BALTER')">
-                        <h3>Balter: The Grappler</h3>
-                        <p>High HP, high defense. Uses grappling moves and counter-attacks. Low speed.</p>
-                        <p><em>Starting Coin Flips: 2</em></p>
-                    </div>
-                    <div class="choice-card" onclick="startGame('STRIKER')">
-                        <h3>Striker: The Brawler</h3>
-                        <p>High damage potential, momentum stacks, and forces clashes. Speed increases coins.</p>
-                        <p><em>Starting Coin Flips: 1</em></p>
-                    </div>
-                    <div class="choice-card" onclick="startGame('SHUTENMARU')">
-                        <h3>Shuten-Maru: The Speedster</h3>
-                        <p>Highest speed, utility through time manipulation (Rewind) and speed buffs (Phase).</p>
-                        <p><em>Starting Coin Flips: 1</em></p>
-                    </div>
-                    <div class="choice-card" onclick="startGame('ZECT')">
-                        <h3>Zect: The Switch Hitter</h3>
-                        <p>Switches between three weapons (Scythe, Trident, Hammer) to gain different bonuses.</p>
-                        <p><em>Starting Coin Flips: 2</em></p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 3. VISUAL NOVEL VIEW (Used for Events/Shops/Game Over) -->
-            <div id="vn-view" class="game-view hidden">
-                <div style="width: 100%; max-width: 800px; padding: 20px; border-radius: 8px; background: rgba(0,0,0,0.1);">
-                    <p id="dialogue-text" style="font-size: 1.2em;"></p>
-                </div>
-            </div>
-
-            <!-- 4. COMBAT VIEW (Initially hidden) -->
-            <div id="combat-view" class="game-view hidden">
-                
-                <!-- Combat Log (Full Height) -->
-                <div id="combat-log">Combat log starts here...</div>
-                
-                <!-- Player/Enemy Status Header -->
-                <div id="combat-header">
-                    <div id="player-status-block">
-                        <h3 style="margin-bottom: 5px;">Player Status</h3>
-                        <div id="player-health-bar" class="health-bar-container">
-                            <div class="health-bar" style="width: 100%;">100/100</div>
-                        </div>
-                        <div id="player-status-effects" style="font-size: 0.9em; margin-top: 5px;"></div>
-                    </div>
-                    <div id="enemy-status-block" style="text-align: right;">
-                        <h3 id="enemy-name" style="margin-bottom: 5px;">---</h3>
-                        <div id="enemy-health-bar" class="health-bar-container">
-                            <div class="health-bar" style="width: 100%;">100/100</div>
-                        </div>
-                        <div id="enemy-status-effects" style="font-size: 0.9em; margin-top: 5px;"></div>
-                    </div>
-                </div>
-                
-                <!-- Image/Animation Area -->
-                <div id="image-animation-area">
-                    <div id="visual-content" style="font-size: 1.5em; text-align: center;">
-                        <div id="animation-output"></div>
-                        <div id="coin-animation-area"></div>
-                        The fight is on!
-                    </div>
-                </div>
-
-                <!-- Dialogue Box -->
-                <div id="combat-dialogue-box">
-                    <p id="combat-dialogue-text">Waiting for your action...</p>
-                </div>
-            </div>
-
-            <!-- 5. SETTINGS VIEW (Initially hidden) -->
-            <div id="settings-view" class="game-view hidden">
-                <h1 class="title">Settings</h1>
-                <p>Choose your display theme:</p>
-                <div style="display: flex; gap: 30px; margin-top: 20px;">
-                    <button class="action-button" style="background: #FFFFFF; color: #121212;" onclick="applyTheme('default')">Default (Cream)</button>
-                    <button class="action-button" style="background: #1C1C1C; color: #E0E0E0;" onclick="applyTheme('dark')">Dark Mode</button>
-                    <button class="action-button" style="background: #000000; color: #00FF00;" onclick="applyTheme('retro')">Retro (Green)</button>
-                </div>
-                <button class="action-button" style="margin-top: 50px;" onclick="showMenu()">Back to Menu</button>
-            </div>
-
-
-        </div>
-        
-        <!-- ACTION AREA (Shared between views) -->
-        <div id="action-area">
-            <!-- Buttons generated by JS -->
-        </div>
+<div id="game-container">
+  <!-- Player Stats -->
+  <div id="stat-area" style="flex-shrink:0; padding:10px; display:flex; justify-content:space-between; align-items:center;">
+    <div>
+      <span id="player-name">---</span> | HP: <span id="player-hp">---</span> | Gold: <span id="player-gold">0</span> | Floor: <span id="current-floor">---</span>
     </div>
+  </div>
+  <!-- Main display area -->
+  <div id="display-area" style="flex:1; display:grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto 1fr auto; gap:10px;">
+    <!-- 1. Attack Buttons (Left) -->
+    <div id="attack-area">
+      <!-- Buttons will be generated dynamically -->
+    </div>
+    <!-- 2. Visual / Log area -->
+    <div style="display:flex; flex-direction:column; grid-column:2/3; grid-row:1/4;">
+      <!-- Combat Log -->
+      <div id="combat-log"></div>
+      <!-- Visual & Clash area -->
+      <div id="visual-area" style="margin-top:10px;">
+        <div id="visual-content">
+          <div id="animation-output"></div>
+          <div id="clash-area"></div>
+          <div>The fight is on!</div>
+        </div>
+      </div>
+    </div>
+    <!-- 3. Right side: Portrait & Buttons -->
+    <div id="portrait-area" style="grid-column:3/4; grid-row:1/4; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; margin-left:10px;">
+      <div id="portrait-container" style="position: relative;">
+        <img id="portrait" src="https://via.placeholder.com/80" alt="Portrait" />
+        <div class="tooltip" id="portrait-tooltip"></div>
+      </div>
+      <button id="inventory-button" class="action-button" style="width:100px;">Inventory</button>
+    </div>
+  </div>
+</div>
 
-    <script>
-        // --- START game.js CONTENT ---
+<script>
+// ... (keep your existing game logic here, just add the new functions and modify existing ones for UI changes)
 
-        // Global Game State Object
-        const gameState = {
-            player: null,
-            currentFloor: 0,
-            currentGold: 0,
-            currentEnemy: null,
-            state: 'MENU', 
-            playerCharacterKey: null,
-            rewindState: null, 
-            currentTheme: 'default',
-            fullCombatLog: [] // Store all log messages
-        };
+// --- 1. Enhanced Clash Animation ---
+async function animateCoinFlips(p1Name, p1TotalCoins, p1Heads, p2Name, p2TotalCoins, p2Heads) {
+    const area = document.getElementById('clash-area');
+    const output = document.getElementById('animation-output');
+    area.innerHTML = '';
+    output.textContent = 'CLASH INITIATED!';
+    output.style.color = '#121212';
 
-        // Global State for the current combat turn
-        let currentTurn = {
-            playerAction: null, 
-            enemyAction: null,
-            actionPerformer: null, 
-            log: [], // Temp log for the current turn resolution
-            isRewindTurn: false, 
-            staggeredEntity: null,
-            turnNumber: 0,
-        };
+    const p1Result = Array(p1TotalCoins).fill(0).map((_, i) => i < p1Heads ? 'H' : 'T');
+    const p2Result = Array(p2TotalCoins).fill(0).map((_, i) => i < p2Heads ? 'H' : 'T');
 
-        // --- 1. Character Data Definitions (Initial Rosters) ---
+    // Randomly interleave results
+    const allResults = [];
+    while (p1Result.length > 0 || p2Result.length > 0) {
+        if (p1Result.length > 0) allResults.push({ result: p1Result.shift(), owner: p1Name });
+        if (p2Result.length > 0) allResults.push({ result: p2Result.shift(), owner: p2Name });
+    }
 
-        const CHARACTER_DATA = {
-            // Player Characters
-            BALTER: {
-                name: "Balter",
-                maxHp: 120, attack: 10, defense: 6, speed: 7, coinFlips: 2,
-            },
-            STRIKER: {
-                name: "Striker",
-                maxHp: 90, attack: 6, defense: 4, speed: 12, coinFlips: 1,
-            },
-            SHUTENMARU: {
-                name: "Shuten-Maru",
-                maxHp: 80, attack: 8, defense: 5, speed: 15, coinFlips: 1
-            },
-            ZECT: {
-                name: "Zect",
-                maxHp: 100, attack: 6, defense: 5, speed: 9, coinFlips: 2
-            },
-
-            // Enemy Example
-            GOBLIN: {
-                name: "Goblin Grunt", maxHp: 30, attack: 8, defense: 2, speed: 6, coinFlips: 1
-            }
-        };
-
-        // --- 2. Data Structures ---
-
-        class Character {
-            constructor(data) {
-                this.name = data.name;
-                this.maxHp = data.maxHp;
-                this.currentHp = data.maxHp;
-                
-                this.baseDefense = data.defense; 
-                this.defense = data.defense;     
-                this.baseAttack = data.attack; 
-                this.attack = data.attack;
-
-                this.baseSpeed = data.speed;
-                this.speed = data.speed;
-
-                this.baseCoinFlips = data.coinFlips;
-                this.coinFlips = data.coinFlips;
-                this.isAlive = true;
-                
-                this.status = {
-                    isGrappled: false,
-                    isGrappledBy: null, 
-                    isStaggered: false,
-                    skipperTurns: 0,
-                    mistyStacks: 0,
-                    momentumStacks: 0,
-                    currentForm: data.name === 'Zect' ? 'Scythe' : null,
-                    rewindUsed: false,
-                    ironGuardActive: false,
-                    tempDefenseBonus: 0,
-                    tempSpeedBonus: 0,
-                    zectClashBonus: 0,
-                    zectScytheHeal: false,
-                    strikerRounds: 0, 
-                    shutenDoublePalm: false,
-                    lastDamageTaken: 0,
-                    // Additional info the player needs to uncover
-                    uncoveredStats: {
-                        defense: false,
-                        speed: false,
-                        attack: false
-                    }
-                };
-            }
-
-            // --- Core Methods ---
-            
-            takeDamage(damage, type = 'Physical', ignoreDefense = false) {
-                let initialDamage = damage;
-                
-                if (this.name !== 'Goblin Grunt') {
-                    // Shuten-Maru's Misty Trait Check
-                    if (this.name === 'Shuten-Maru' && this.status.mistyStacks > 0) {
-                        initialDamage = Math.max(1, initialDamage - (this.status.mistyStacks * 2)); 
-                        currentTurn.log.push(`*Shuten-Maru's Misty stack (${this.status.mistyStacks}) dissipated, lessening the impact.*`);
-                        this.status.mistyStacks = 0;
-                    }
-                }
-
-                let defenseValue = ignoreDefense ? 0 : this.defense;
-                let effectiveDamage = Math.max(0, initialDamage - defenseValue);
-                this.currentHp -= effectiveDamage;
-                this.status.lastDamageTaken = effectiveDamage;
-
-                if (this.currentHp <= 0) {
-                    this.currentHp = 0;
-                    this.isAlive = false;
-                }
-                
-                // If enemy takes damage, reveal defense stat
-                if (this.name === 'Goblin Grunt') {
-                    this.status.uncoveredStats.defense = true;
-                }
-
-                return effectiveDamage;
-            }
-
-            rollAttackDamage(dieSize, type = 'Physical') {
-                let baseDamage = 1 + Math.floor(Math.random() * dieSize);
-                let bonus = 0;
-                
-                if (this.name === 'Striker' && type === 'Physical' && this.status.momentumStacks > 0) {
-                    bonus += this.status.momentumStacks;
-                }
-                
-                if (this.name === 'Striker' && this.status.skipperTurns > 0) {
-                    if (type === 'Physical') {
-                        bonus += 2;
-                    }
-                }
-
-                if (this.name === 'Shuten-Maru' && currentTurn.isRewindTurn) {
-                    baseDamage *= 2;
-                }
-
-                // If player attacks, reveal enemy attack stat
-                if (this.name !== 'Goblin Grunt') {
-                     gameState.currentEnemy.status.uncoveredStats.attack = true;
-                }
-
-                return baseDamage + bonus;
-            }
-
-            // --- Ability Helpers (Used in resolveTurn) ---
-
-            startDefend() {
-                this.status.tempDefenseBonus = 5;
-                this.defense += 5; 
-                currentTurn.log.push(`${this.name} braces for impact, gaining +5 Defense this turn.`);
-            }
-
-            endTurnCleanup() {
-                this.defense = this.baseDefense; 
-                this.speed = this.baseSpeed;
-                
-                this.status.tempDefenseBonus = 0;
-                this.status.tempSpeedBonus = 0;
-                this.status.ironGuardActive = false;
-                this.status.isStaggered = false; 
-                this.status.zectClashBonus = 0;
-                this.status.zectScytheHeal = false;
-                
-                // Striker's Slow Start (Coin increase)
-                if (this.name === 'Striker' && gameState.state === 'COMBAT') {
-                    this.status.strikerRounds++;
-                    this.coinFlips = this.baseCoinFlips + (this.status.strikerRounds * 2); 
-                }
-
-                // Striker's Skipper Countdown
-                if (this.name === 'Striker' && this.status.skipperTurns > 0) {
-                    this.status.skipperTurns--;
-                    if (this.status.skipperTurns === 0) {
-                        this.defense = this.baseDefense;
-                        this.coinFlips = this.baseCoinFlips + (this.status.strikerRounds * 2); 
-                        currentTurn.log.push(`Striker's Skipper buff ends. Defense restored.`);
-                    }
-                }
-            }
-        }
-
-        // --- UI/Theme Management ---
-
-        function applyTheme(themeName) {
-            document.body.className = `theme-${themeName}`;
-            gameState.currentTheme = themeName;
-        }
-
-        function showView(viewId) {
-            document.querySelectorAll('.game-view').forEach(view => {
-                view.classList.add('hidden');
-            });
-            document.getElementById(viewId).classList.remove('hidden');
-        }
-        
-        // Helper function to update the health bar visual
-        function updateHealthBar(elementId, current, max) {
-            const container = document.getElementById(elementId);
-            const bar = container.querySelector('.health-bar');
-            if (!bar) return;
-
-            const percentage = Math.round((current / max) * 100);
-            bar.style.width = `${percentage}%`;
-            bar.textContent = `${current}/${max}`;
-            
-            if (percentage < 30) {
-                bar.classList.add('low');
-            } else {
-                bar.classList.remove('low');
-            }
-        }
-
-        function updateStatsDisplay() {
-            const player = gameState.player;
-            document.getElementById('current-floor').textContent = gameState.currentFloor;
-
-            if (!player) {
-                document.getElementById('player-hp').textContent = '---';
-                document.getElementById('player-gold').textContent = '0';
-                return;
-            }
-
-            document.getElementById('player-name').textContent = player.name;
-            document.getElementById('player-hp').textContent = `${player.currentHp}/${player.maxHp}`;
-            document.getElementById('player-gold').textContent = gameState.currentGold;
-            
-            // Update combat status display
-            if (gameState.state === 'COMBAT') {
-                const enemy = gameState.currentEnemy;
-                
-                // --- PLAYER STATUS ---
-                let playerStatusHtml = `Speed: ${player.speed} | Def: ${player.defense} | Coins: ${player.coinFlips}`;
-                const playerEffects = [];
-                if (player.status.skipperTurns > 0) playerEffects.push(`SKIPPER (${player.status.skipperTurns})`);
-                if (player.status.momentumStacks > 0) playerEffects.push(`MOMENTUM (+${player.status.momentumStacks} Dmg)`);
-                if (player.status.currentForm) playerEffects.push(player.status.currentForm.toUpperCase());
-                
-                if (playerEffects.length > 0) playerStatusHtml += `<br>Effects: ${playerEffects.join(' | ')}`;
-                document.getElementById('player-status-effects').innerHTML = playerStatusHtml;
-
-                // Update Player HP Bar
-                updateHealthBar('player-health-bar', player.currentHp, player.maxHp);
-                
-                // --- ENEMY STATUS ---
-                document.getElementById('enemy-name').textContent = enemy.name;
-                
-                // Update Enemy HP Bar
-                updateHealthBar('enemy-health-bar', enemy.currentHp, enemy.maxHp);
-
-                // Show uncovered stats for enemy (Defense and Speed are only revealed through combat actions)
-                let enemyStatsHtml = '';
-                const effects = [];
-                if (enemy.status.isGrappled) effects.push(`GRAPPLED`);
-                
-                // Only display what the player has 'discovered'
-                if (enemy.status.uncoveredStats.defense) {
-                    enemyStatsHtml += `Def: ${enemy.defense} | `;
-                }
-                if (enemy.status.uncoveredStats.speed) {
-                    enemyStatsHtml += `Spd: ${enemy.speed} | `;
-                }
-                if (enemy.status.uncoveredStats.attack) {
-                    enemyStatsHtml += `Atk: ${enemy.attack} | `;
-                }
-                
-                if (effects.length > 0) enemyStatsHtml += `Effects: ${effects.join(' | ')}`;
-                
-                document.getElementById('enemy-status-effects').innerHTML = enemyStatsHtml;
-            }
-        }
-
-        function displayDialogue(text) {
-            if (gameState.state === 'COMBAT') {
-                document.getElementById('combat-dialogue-text').innerHTML = text;
-            } else {
-                 document.getElementById('dialogue-text').innerHTML = text;
-            }
-        }
-
-        function clearActions() {
-            document.getElementById('action-area').innerHTML = '';
-        }
-        
-        function updateCombatLog(newMessages = []) {
-            if (gameState.state !== 'COMBAT') return;
-
-            // Add new messages to the global log
-            gameState.fullCombatLog.push(...newMessages);
-
-            const logElement = document.getElementById('combat-log');
-            logElement.innerHTML = gameState.fullCombatLog.map((msg, index) => {
-                const turnNumber = msg.match(/^\[Turn (\d+)\]/);
-                if (turnNumber) {
-                    // Highlight the turn start
-                    return `<div style="font-weight: bold; margin-top: 5px;">${msg}</div>`;
-                }
-                return `<div>${msg}</div>`;
-            }).join('');
-            
-            // Scroll to the bottom
-            logElement.scrollTop = logElement.scrollHeight;
-        }
-
-        /**
-         * ANIMATION FUNCTION: Shows a rapid number roll and then displays the final result.
-         * @param {number} finalValue - The final damage/heal number to display.
-         * @param {string} type - 'damage' (red) or 'heal' (green).
-         * @returns {Promise<void>} - Resolves when animation is complete.
-         */
-        function animateDamageText(finalValue, type) {
-            const output = document.getElementById('animation-output');
-            const color = type === 'damage' ? '#CC3333' : '#4CAF50';
-            const prefix = type === 'damage' ? '-' : '+';
-            
-            output.textContent = '';
-            output.style.color = color;
-            
-            return new Promise(resolve => {
-                let current = 0;
-                let duration = 600; // ms
-                let startTime = null;
-
-                // Animate roll
-                function roll(timestamp) {
-                    if (!startTime) startTime = timestamp;
-                    const elapsed = timestamp - startTime;
-                    const progress = Math.min(1, elapsed / duration);
-
-                    if (progress < 1) {
-                        current = Math.floor(Math.random() * (finalValue * 1.5) + 1);
-                        output.textContent = `${prefix}${current}`;
-                        requestAnimationFrame(roll);
-                    } else {
-                        // Final display
-                        output.textContent = `${prefix}${finalValue}`;
-                        setTimeout(() => {
-                            output.textContent = '';
-                            resolve();
-                        }, 800); 
-                    }
-                }
-                requestAnimationFrame(roll);
-            });
-        }
-        
-        /**
-         * ANIMATION FUNCTION: Generates and animates coins flipping for a clash.
-         * @param {string} p1Name - Name of player 1.
-         * @param {number} p1TotalCoins - Total coins for p1.
-         * @param {number} p1Heads - Heads rolled by p1.
-         * @param {string} p2Name - Name of player 2.
-         * @param {number} p2TotalCoins - Total coins for p2.
-         * @param {number} p2Heads - Heads rolled by p2.
-         * @returns {Promise<void>} - Resolves when animation is complete.
-         */
-        function animateCoinFlips(p1Name, p1TotalCoins, p1Heads, p2Name, p2TotalCoins, p2Heads) {
-            const area = document.getElementById('coin-animation-area');
-            const output = document.getElementById('animation-output');
-            area.innerHTML = '';
-            output.textContent = 'CLASH INITIATED!';
-            output.style.color = '#121212';
-            
-            const p1Result = Array(p1TotalCoins).fill(0).map((_, i) => i < p1Heads ? 'H' : 'T');
-            const p2Result = Array(p2TotalCoins).fill(0).map((_, i) => i < p2Heads ? 'H' : 'T');
-            
-            // Randomly interleave results for better visual flow
-            const allResults = [];
-            while (p1Result.length > 0 || p2Result.length > 0) {
-                if (p1Result.length > 0) allResults.push({ result: p1Result.shift(), owner: p1Name });
-                if (p2Result.length > 0) allResults.push({ result: p2Result.shift(), owner: p2Name });
-            }
-
-            return new Promise(resolve => {
-                let delay = 0;
-                let displayedCoins = [];
-
-                for (let i = 0; i < allResults.length; i++) {
-                    const { result, owner } = allResults[i];
-                    
+    return new Promise(resolve => {
+        let delay = 0;
+        const coins = [];
+        for (let i=0; i<allResults.length; i++) {
+            const { result, owner } = allResults[i];
+            setTimeout(() => {
+                // Create coin element
+                const coin = document.createElement('div');
+                coin.className = 'coin-flip';
+                coin.textContent = '?';
+                // Add bounce/spin animation class
+                coin.classList.add('flip-animate');
+                // Append to clash area
+                area.appendChild(coin);
+                coins.push(coin);
+                // After animation, show result
+                setTimeout(() => {
+                    coin.textContent = result;
+                    coin.className = 'coin-flip ' + (result==='H'?'heads':'tails');
+                    coin.title = owner + ': ' + result;
+                }, 400);
+                // Update output with running total
+                const headsCount = coins.filter(c => c.title.includes(owner) && c.textContent==='H').length;
+                output.textContent = `${p1Name}: ${coins.filter(c => c.title.includes(p1Name) && c.textContent==='H').length}/${p1TotalCoins} vs ${p2Name}: ${coins.filter(c => c.title.includes(p2Name) && c.textContent==='H').length}/${p2TotalCoins}`;
+                if (i===allResults.length-1) {
                     setTimeout(() => {
-                        const coin = document.createElement('div');
-                        coin.className = 'coin-flip';
-                        coin.textContent = '?';
-                        coin.style.animation = 'flip 0.8s ease-out';
-                        area.appendChild(coin);
-                        displayedCoins.push(coin);
-                        
-                        setTimeout(() => {
-                            coin.textContent = result;
-                            coin.className = `coin-flip ${result === 'H' ? 'heads' : 'tails'}`;
-                            coin.title = `${owner}: ${result}`;
-                        }, 400); // Stop flip animation mid-way to show result
-                        
-                        // Update output text with running totals
-                        const currentP1Heads = displayedCoins.filter(c => c.title.includes(p1Name) && c.textContent === 'H').length;
-                        const currentP2Heads = displayedCoins.filter(c => c.title.includes(p2Name) && c.textContent === 'H').length;
-                        output.textContent = `${p1Name}: ${currentP1Heads}/${p1TotalCoins} vs ${p2Name}: ${currentP2Heads}/${p2TotalCoins}`;
-
-                        if (i === allResults.length - 1) {
-                            // After the last coin lands, resolve the promise after a slight delay
-                            setTimeout(() => {
-                                output.textContent = '';
-                                area.innerHTML = '';
-                                resolve();
-                            }, 1500); 
-                        }
-                    }, delay);
-                    delay += 250; 
+                        output.textContent = '';
+                        area.innerHTML = '';
+                        resolve();
+                    }, 1500);
                 }
-                // Handle case of zero coins (shouldn't happen with Zect, but safe fallback)
-                if (allResults.length === 0) {
-                     output.textContent = '';
-                     resolve();
-                }
-            });
+            }, delay);
+            delay += 250;
         }
-
-
-        // --- Game Flow Functions ---
-
-        function showMenu() {
-            gameState.state = 'MENU';
-            clearActions();
-            showView('menu-view');
+        if (allResults.length===0) {
+            output.textContent = '';
+            resolve();
         }
+    });
+}
 
-        function showCharSelect() {
-            gameState.state = 'CHAR_SELECT';
-            clearActions();
-            showView('char-select-view');
+// --- 2. Combat Log Length & Auto-scroll ---
+function updateCombatLog(newMessages=[]) {
+    if (gameState.state !== 'COMBAT') return;
+    gameState.fullCombatLog.push(...newMessages);
+    const logEl = document.getElementById('combat-log');
+    logEl.innerHTML = gameState.fullCombatLog.map(msg => `<div>${msg}</div>`).join('');
+    logEl.scrollTop = logEl.scrollHeight; // auto scroll
+}
+
+// --- 3. Move attack buttons to left ---
+function displayCombatOptions() {
+    const player = gameState.player;
+    const enemy = gameState.currentEnemy;
+    // ... (existing code)
+    let abilitiesHTML = getPlayerAbilities(player);
+    document.getElementById('attack-area').innerHTML = abilitiesHTML;
+}
+
+// Generate abilities buttons in a column
+function getPlayerAbilities(player) {
+    let html = '';
+    if (player.name === 'Balter') {
+        html += `<button class="action-button ability-attack" onclick="handlePlayerAction('HAYMAKER')">Haymaker (1d10)</button>`;
+        html += `<button class="action-button ability-utility" onclick="handlePlayerAction('GRAPPLE')">Grapple (Str Check)</button>`;
+        if (gameState.currentEnemy.status.isGrappled) {
+            html += `<button class="action-button ability-attack" onclick="handlePlayerAction('PILEDRIVER')">Piledriver (20 Dmg)</button>`;
         }
-        
-        function showSettings() {
-            gameState.state = 'SETTINGS';
-            clearActions();
-            showView('settings-view');
-        }
-
-        function startGame(chosenCharacterKey) {
-            gameState.playerCharacterKey = chosenCharacterKey;
-            gameState.player = new Character(CHARACTER_DATA[chosenCharacterKey]);
-            gameState.currentFloor = 0;
-            gameState.currentGold = 0;
-            gameState.state = 'VN_EVENT'; 
-            gameState.player.status.strikerRounds = 0; 
-            gameState.fullCombatLog = [];
-
-            updateStatsDisplay();
-            displayDialogue(`A new journey begins... You chose **${gameState.player.name}**!`);
-            
-            clearActions();
-            showView('vn-view'); 
-            nextRunStage();
-        }
-
-        function nextRunStage() {
-            gameState.currentFloor++;
-            
-            updateStatsDisplay();
-            clearActions();
-            
-            const encounterType = Math.floor(Math.random() * 3);
-            
-            if (encounterType === 0) {
-                startCombat();
-            } else if (encounterType === 1) {
-                startVNEvent();
-            } else {
-                startShop();
-            }
-        }
-
-        // --- Visual Novel/Event Functions (Simplified) ---
-
-        function startVNEvent() {
-            gameState.state = 'VN_EVENT';
-            showView('vn-view');
-            displayDialogue("You find a hidden shrine. Do you **PRAY** for luck or **SMASH** it for loot?");
-            
-            const actionArea = document.getElementById('action-area');
-            actionArea.innerHTML = `
-                <button class="action-button ability-utility" onclick="handleVNChoice('PRAY')">Pray (+HP)</button>
-                <button class="action-button ability-attack" onclick="handleVNChoice('SMASH')">Smash (+Gold)</button>
-            `;
-        }
-
-        function handleVNChoice(choice) {
-            if (choice === 'PRAY') {
-                const heal = 10;
-                gameState.player.currentHp = Math.min(gameState.player.maxHp, gameState.player.currentHp + heal);
-                displayDialogue(`You feel invigorated. (+${heal} HP)`);
-                animateDamageText(heal, 'heal');
-            } else if (choice === 'SMASH') {
-                const gold = 5;
-                gameState.currentGold += gold;
-                displayDialogue(`You find a few rusty coins. (+${gold} Gold)`);
-            }
-            updateStatsDisplay();
-            
-            clearActions();
-            document.getElementById('action-area').innerHTML = `<button class="action-button" onclick="nextRunStage()">Continue Deeper</button>`;
-        }
-
-        function startShop() {
-            gameState.state = 'SHOP';
-            showView('vn-view');
-            displayDialogue("You find a dusty merchant. What would you like to buy?");
-            clearActions();
-            const actionArea = document.getElementById('action-area');
-            actionArea.innerHTML = `
-                <button class="action-button" onclick="nextRunStage()">Leave Shop</button>
-            `;
-        }
-
-
-        // --- Combat Functions ---
-
-        function startCombat() {
-            gameState.state = 'COMBAT';
-            showView('combat-view');
-            
-            gameState.currentEnemy = new Character(CHARACTER_DATA.GOBLIN);
-            
-            currentTurn.turnNumber = 1;
-            gameState.fullCombatLog.push(`[Turn ${currentTurn.turnNumber}] Starting combat with ${gameState.currentEnemy.name}.`);
-            updateCombatLog();
-
-            displayCombatOptions();
-        }
-
-        function displayCombatOptions() {
-            const player = gameState.player;
-            const enemy = gameState.currentEnemy;
-            
-            // 1. Clean up from last turn and reset stats
-            player.endTurnCleanup(); 
-            enemy.endTurnCleanup();
-            currentTurn.isRewindTurn = false; 
-
-            // Check for stagger 
-            if (player.status.isStaggered) {
-                currentTurn.log.push(`[Turn ${currentTurn.turnNumber}] ${player.name} is Staggered and cannot move this turn.`);
-                updateCombatLog(currentTurn.log);
-                handlePlayerAction('STAGGERED'); 
-                return;
-            }
-
-            // 2. Update UI
-            updateStatsDisplay();
-            
-            // 3. Display Player Abilities (NO GENERIC DEFEND/PASS)
-            let abilitiesHTML = getPlayerAbilities(player);
-            
-            displayDialogue(`Your Move: **${enemy.name}** vs. **${player.name}**`);
-            document.getElementById('action-area').innerHTML = abilitiesHTML;
-        }
-
-        function getPlayerAbilities(player) {
-            let html = '';
-            
-            if (player.name === 'Balter') {
-                html += `<button class="action-button ability-attack" onclick="handlePlayerAction('HAYMAKER')">Haymaker (1d10)</button>`;
-                html += `<button class="action-button ability-utility" onclick="handlePlayerAction('GRAPPLE')">Grapple (Str Check)</button>`;
-                if (gameState.currentEnemy.status.isGrappled) {
-                    html += `<button class="action-button ability-attack" onclick="handlePlayerAction('PILEDRIVER')">Piledriver (20 Dmg)</button>`;
-                }
-                html += `<button class="action-button ability-utility" onclick="handlePlayerAction('IRONGUARD')">Iron Guard (Counter)</button>`;
-            } else if (player.name === 'Striker') {
-                html += `<button class="action-button ability-attack" onclick="handlePlayerAction('DRAGONTWISTER')">Dragon Twister (1d6)</button>`;
-                html += `<button class="action-button ability-utility" onclick="handlePlayerAction('SKIPPER')">Skipper (Buff)</button>`;
-                html += `<button class="action-button ability-attack" onclick="handlePlayerAction('DISRUPTIVELUNGE')">Disruptive Lunge (1d4, Clash)</button>`;
-                html += `<button class="action-button ability-attack" onclick="handlePlayerAction('HEAVYBLOW')">Heavy Blow (20, Stagger Self)</button>`;
-            } else if (player.name === 'Shuten-Maru') {
-                html += `<button class="action-button ability-attack" onclick="handlePlayerAction('GHOSTPALM')">Ghost Palm (1d8 Psychic)</button>`;
-                html += `<button class="action-button ability-utility" onclick="handlePlayerAction('PHASE')">Phase (Misty/Speed)</button>`;
-                html += `<button class="action-button ability-attack" onclick="handlePlayerAction('ACCELERATOR')">Accelerator (1d4 Force)</button>`;
-                if (!player.status.rewindUsed) {
-                    html += `<button class="action-button ability-utility" onclick="handlePlayerAction('REWIND')">Rewind (Once Per Combat)</button>`;
-                }
-            } else if (player.name === 'Zect') {
-                const form = player.status.currentForm;
-                const attackDesc = form === 'Scythe' ? '1d6 Dark (Heal)' : (form === 'Trident' ? '1d8 Force (Clash Bonus)' : '1d12 Physical (Def Bonus)');
-                html += `<button class="action-button ability-attack" onclick="handlePlayerAction('TRI-SWORD')">Tri-Sword (${attackDesc})</button>`;
-                html += `<button class="action-button ability-utility" onclick="handlePlayerAction('SWITCH')">Switch (to ${form === 'Scythe' ? 'Trident' : (form === 'Trident' ? 'Hammer' : 'Scythe')})</button>`;
-            }
-            
-            return html;
-        }
-
-        async function handlePlayerAction(action) {
-            // Disable buttons during resolution
-            document.querySelectorAll('.action-button').forEach(btn => btn.disabled = true);
-
-            // Save state for potential Shuten-Maru Rewind
-            gameState.rewindState = JSON.stringify({
-                player: JSON.parse(JSON.stringify(gameState.player)), 
-                enemy: JSON.parse(JSON.stringify(gameState.currentEnemy)), 
-                currentLog: currentTurn.log.slice(), // Slice for a copy
-                turnNumber: currentTurn.turnNumber
-            });
-
-            currentTurn.playerAction = action;
-            currentTurn.log = []; // Clear current turn log buffer
-
-            if (action === 'PILEDRIVER' && !gameState.currentEnemy.status.isGrappled) {
-                currentTurn.log.push("Piledriver failed: Target must be Grappled!");
-                updateCombatLog(currentTurn.log);
-                document.querySelectorAll('.action-button').forEach(btn => btn.disabled = false);
-                displayCombatOptions();
-                return;
-            }
-
-            // 1. Enemy chooses its action (Simple AI: 70% Attack, 30% Defend)
-            currentTurn.enemyAction = (Math.random() < 0.7) ? 'ATTACK' : 'DEFEND';
-            
-            // 2. Resolve the turn
-            await resolveTurn();
-        }
-
-        // --- CORE RESOLUTION LOGIC ---
-
-        async function resolveTurn() {
-            const player = gameState.player;
-            const enemy = gameState.currentEnemy;
-            
-            currentTurn.turnNumber++;
-            currentTurn.log.push(`[Turn ${currentTurn.turnNumber}] ${player.name} uses ${currentTurn.playerAction}. ${enemy.name} prepares to ${currentTurn.enemyAction}.`);
-            
-            const cannotClash = player.status.isGrappled || enemy.status.isGrappled;
-            const playerAttackActions = ['HAYMAKER', 'DRAGONTWISTER', 'GHOSTPALM', 'TRI-SWORD'];
-            
-            let isClash = !cannotClash && playerAttackActions.includes(currentTurn.playerAction) && currentTurn.enemyAction === 'ATTACK';
-
-            if (!cannotClash && currentTurn.playerAction === 'DISRUPTIVELUNGE') {
-                const playerIsSlower = player.speed < enemy.speed;
-                if (playerIsSlower || currentTurn.enemyAction === 'ATTACK') { 
-                    isClash = true; 
-                    currentTurn.log.push(`Striker's Disruptive Lunge forces a Clash!`);
-                }
-            }
-            
-            let shouldContinue = true;
-
-            if (isClash) {
-                await runClash(player, enemy);
-            } 
-            else {
-                // Enemy speed stat discovery
-                enemy.status.uncoveredStats.speed = true; 
-                
-                const playerIsFaster = player.speed >= enemy.speed;
-                
-                const resolutionOrder = playerIsFaster ? 
-                    [{ entity: player, action: currentTurn.playerAction, target: enemy }] :
-                    [{ entity: enemy, action: currentTurn.enemyAction, target: player }];
-                
-                resolutionOrder.push(playerIsFaster ? 
-                    { entity: enemy, action: currentTurn.enemyAction, target: player } :
-                    { entity: player, action: currentTurn.playerAction, target: enemy }
-                );
-
-                for (const { entity, action, target } of resolutionOrder) {
-                    if (!entity.isAlive || !target.isAlive || action === 'STAGGERED' || !shouldContinue) continue; 
-                    currentTurn.actionPerformer = entity;
-
-                    // Execute ability based on chosen action
-                    if (action === 'DEFEND') { 
-                        entity.startDefend();
-                    } else if (action === 'ATTACK') { 
-                        await handleAttackAction(entity, target, entity.attack, 'Physical');
-                    } else if (action === 'IRONGUARD') {
-                        handleIronGuard(entity);
-                    } else if (action === 'HAYMAKER') {
-                        await handleAttackAction(entity, target, 10, 'Physical');
-                    } else if (action === 'GRAPPLE') {
-                        handleGrapple(entity, target);
-                    } else if (action === 'PILEDRIVER') {
-                        await handlePiledriver(entity, target);
-                    } else if (action === 'DRAGONTWISTER') {
-                        await handleAttackAction(entity, target, 6, 'Physical');
-                    } else if (action === 'SKIPPER') {
-                        handleSkipper(entity);
-                    } else if (action === 'HEAVYBLOW') {
-                        await handleHeavyBlow(entity, target);
-                    } else if (action === 'GHOSTPALM') {
-                        await handleGhostPalm(entity, target);
-                    } else if (action === 'PHASE') {
-                        handlePhase(entity);
-                    } else if (action === 'ACCELERATOR') {
-                        await handleAccelerator(entity, target);
-                    } else if (action === 'REWIND') {
-                        // Rewind is handled in handlePlayerAction to restart the turn
-                    } else if (action === 'TRI-SWORD') {
-                        await handleTriSword(entity, target);
-                    } else if (action === 'SWITCH') {
-                        handleSwitch(entity);
-                    }
-                    
-                    // Break if combat ended during a step
-                    if (!player.isAlive || !enemy.isAlive) {
-                         shouldContinue = false;
-                         break;
-                    }
-                }
-                
-                // --- Balter's Iron Guard Counter Trait Check (Post-action) ---
-                if (shouldContinue && player.name === 'Balter' && player.status.ironGuardActive && currentTurn.enemyAction === 'ATTACK') {
-                    const balterIsFaster = player.speed > enemy.speed;
-                    if (!balterIsFaster) {
-                        currentTurn.log.push(`Balter's Iron Guard triggers a free Haymaker counter!`);
-                        await handleAttackAction(player, enemy, 10, 'Physical', true); 
-                    }
-                }
-            }
-            
-            // 5. Check for End of Combat
-            endTurnChecks();
-        }
-
-        // --- ABILITY IMPLEMENTATIONS ---
-        
-        // Balter
-        function handleIronGuard(balter) {
-            balter.startDefend(); 
-            balter.status.ironGuardActive = true;
-        }
-
-        function handleGrapple(grappler, target) {
-            const grapplerRoll = 1 + Math.floor(Math.random() * 10);
-            const targetRoll = 1 + Math.floor(Math.random() * 8); 
-
-            if (grapplerRoll > targetRoll) {
-                target.status.isGrappled = true;
-                target.status.isGrappledBy = grappler;
-                target.speed = Math.max(1, target.baseSpeed - 5);
-                currentTurn.log.push(`**Grapple SUCCESS!** ${target.name}'s speed is reduced and all Clashes will fail.`);
-            } else {
-                currentTurn.log.push(`Grapple failed. ${target.name} resisted the attempt!`);
-            }
-        }
-
-        async function handlePiledriver(attacker, target) {
-            if (!target.status.isGrappled) return; 
-            const damage = 20;
-            const damageTaken = target.takeDamage(damage, 'Physical', true); 
-            
-            target.status.isGrappled = false;
-            target.status.isGrappledBy = null;
-            target.speed = target.baseSpeed;
-
-            currentTurn.log.push(`**PILEDRIVER!** ${target.name} takes ${damageTaken} damage! Grapple ends.`);
-            await animateDamageText(damageTaken, 'damage');
-        }
-
-        // Striker
-        function handleSkipper(striker) {
-            striker.status.skipperTurns = 2;
-            striker.defense = Math.floor(striker.baseDefense / 2); 
-            striker.coinFlips = 99; // Set coin flips effectively high for 'always heads'
-            currentTurn.log.push(`Striker activates Skipper! Defense halved, physical damage +2, and **Clashes always win** for 2 turns.`);
-        }
-
-        async function handleHeavyBlow(striker, target) {
-            const damage = 20;
-            const damageTaken = target.takeDamage(damage, 'Physical');
-            striker.status.isStaggered = true; 
-            currentTurn.log.push(`Striker hits Heavy Blow for ${damageTaken} damage! Striker is **STAGGERED** next turn.`);
-            await animateDamageText(damageTaken, 'damage');
-        }
-
-        // Shuten-Maru
-        async function handleGhostPalm(shuten, target) {
-            const damage = shuten.rollAttackDamage(8, 'Psychic'); 
-            const damageTaken = target.takeDamage(damage, 'Psychic');
-            currentTurn.log.push(`Shuten-Maru strikes with Ghost Palm for ${damageTaken} Psychic damage.`);
-            await animateDamageText(damageTaken, 'damage');
-
-
-            if (damage === 8) { 
-                const heal = 5; 
-                shuten.currentHp = Math.min(shuten.maxHp, shuten.currentHp + heal);
-                currentTurn.log.push(`Shuten-Maru's Chrono-Fist triggers! He heals for ${heal}.`);
-                await animateDamageText(heal, 'heal');
-            }
-
-            if (shuten.status.shutenDoublePalm) {
-                 const bonusDmg = shuten.rollAttackDamage(8, 'Psychic');
-                 const bonusTaken = target.takeDamage(bonusDmg, 'Psychic');
-                 currentTurn.log.push(`**Double Palm!** Follow-up hit for ${bonusTaken} Psychic damage.`);
-                 await animateDamageText(bonusTaken, 'damage');
-                 shuten.status.shutenDoublePalm = false;
-            }
-        }
-
-        function handlePhase(shuten) {
-            const speedIncrease = 15; 
-            shuten.status.tempSpeedBonus = speedIncrease;
-            shuten.speed += speedIncrease;
-            
-            if (shuten.status.mistyStacks < 3) shuten.status.mistyStacks++;
-            
-            currentTurn.log.push(`Shuten-Maru phases! Speed greatly increased. Gains 1 stack of Misty (${shuten.status.mistyStacks}).`);
-        }
-
-        async function handleAccelerator(shuten, target) {
-            const damage = shuten.rollAttackDamage(4, 'Force'); 
-            const shutenIsFaster = shuten.speed > target.speed;
-
-            let damageTaken;
-            if (shutenIsFaster) {
-                damageTaken = target.takeDamage(damage, 'Force', true); 
-                currentTurn.log.push(`Shuten-Maru is faster! Accelerator bypasses all defense for ${damageTaken} Force damage.`);
-            } else {
-                 damageTaken = target.takeDamage(damage, 'Force');
-                 currentTurn.log.push(`Accelerator hits for ${damageTaken} Force damage (Defended).`);
-            }
-            await animateDamageText(damageTaken, 'damage');
-
-            if (shutenIsFaster && currentTurn.enemyAction === 'ATTACK') {
-                shuten.status.shutenDoublePalm = true;
-                currentTurn.log.push(`Ghost Palm ready to hit twice next time!`);
-            }
-        }
-        
-        function handleRewind(shuten) {
-            if (shuten.status.rewindUsed) return false;
-            
-            try {
-                const oldState = JSON.parse(gameState.rewindState);
-                
-                // Restore player and enemy objects and their status
-                Object.assign(shuten, oldState.player);
-                Object.assign(gameState.currentEnemy, oldState.enemy);
-                
-                shuten.status = oldState.player.status;
-                gameState.currentEnemy.status = oldState.enemy.status;
-                
-                gameState.fullCombatLog = gameState.fullCombatLog.slice(0, gameState.fullCombatLog.length - currentTurn.log.length);
-                currentTurn.turnNumber = oldState.turnNumber;
-                
-                shuten.status.rewindUsed = true;
-                currentTurn.isRewindTurn = true;
-                
-                const speedIncrease = 20;
-                shuten.speed += speedIncrease;
-
-                currentTurn.log.push(`**REWIND SUCCESS!** Actions undone. Shuten-Maru gains drastic speed and doubled damage this turn.`);
-                
-                updateCombatLog(currentTurn.log);
-                displayCombatOptions(); 
-                return true; 
-            } catch (e) {
-                console.error("Rewind failed:", e);
-                shuten.status.rewindUsed = true;
-                currentTurn.log.push(`Rewind failed due to state error.`);
-                updateCombatLog(currentTurn.log);
-                return false;
-            }
-        }
-
-        // Zect
-        async function handleTriSword(zect, target) {
-            const form = zect.status.currentForm;
-            let dieSize, type;
-
-            if (form === 'Scythe') { dieSize = 6; type = 'Dark'; }
-            else if (form === 'Trident') { dieSize = 8; type = 'Force'; }
-            else { dieSize = 12; type = 'Physical'; }
-
-            const damage = zect.rollAttackDamage(dieSize, type);
-            const damageTaken = target.takeDamage(damage, type);
-            currentTurn.log.push(`Zect attacks with ${form} for ${damageTaken} ${type} damage.`);
-            await animateDamageText(damageTaken, 'damage');
-
-            // Scythe Form Heal Bonus
-            if (form === 'Scythe' && damageTaken > 0) {
-                const heal = Math.ceil(damageTaken / 2); 
-                zect.currentHp = Math.min(zect.maxHp, zect.currentHp + heal);
-                currentTurn.log.push(`Zect's Scythe Form: Heals for ${heal} HP.`);
-                await animateDamageText(heal, 'heal');
-            }
-        }
-
-        function handleSwitch(zect) {
-            const current = zect.status.currentForm;
-            let next, bonusMsg = "";
-
-            // Reset Hammer defense bonus if switching away from it
-            if (current === 'Hammer') {
-                zect.baseDefense -= 1;
-                zect.defense -= 1;
-            }
-
-            if (current === 'Scythe') {
-                next = 'Trident';
-                zect.status.zectClashBonus = 2; 
-                bonusMsg = "Gains +2 damage to the next CLASH.";
-            } else if (current === 'Trident') {
-                next = 'Hammer';
-                zect.baseDefense += 1; 
-                zect.defense += 1;
-                bonusMsg = "Gains +1 Defense (permanent until next Switch).";
-            } else { // Hammer
-                next = 'Scythe';
-                bonusMsg = "Next attack heals Zect for half damage dealt.";
-            }
-
-            zect.status.currentForm = next;
-            currentTurn.log.push(`Zect switches to **${next} Form**! ${bonusMsg}`);
-        }
-        
-        // --- Shared Combat Logic ---
-
-        async function handleAttackAction(attacker, defender, dieSize, type, isFreeAttack = false) {
-            const defenderAction = (defender === gameState.player) ? currentTurn.playerAction : currentTurn.enemyAction;
-            const defenderIsFaster = defender.speed > attacker.speed;
-            
-            // Speed-Block Logic 
-            if (defenderAction === 'DEFEND' && defenderIsFaster && !isFreeAttack) {
-                currentTurn.log.push(`*${defender.name} is faster and successfully defended!* The attack misses.`);
-                return;
-            }
-
-            let baseDamage = attacker.rollAttackDamage(dieSize, type);
-            let damageTaken = defender.takeDamage(baseDamage, type);
-            
-            currentTurn.log.push(`${attacker.name} attacks ${defender.name} (${type}) for **${damageTaken}** damage!`);
-            await animateDamageText(damageTaken, 'damage');
-            
-            // Striker Momentum Trait Cleanup
-            if (attacker.name === 'Striker' && type === 'Physical') {
-                attacker.status.momentumStacks = 0;
-            }
-        }
-
-
-        function flipCoins(numCoins, entity) {
-            let heads = 0;
-            if (entity.name === 'Striker' && entity.status.skipperTurns > 0) {
-                heads = numCoins; // Skipper: Always Heads
-            } else {
-                for (let i = 0; i < numCoins; i++) {
-                    if (Math.random() >= 0.5) { heads++; }
-                }
-            }
-            return heads;
-        }
-
-        async function runClash(p1, p2) {
-            if (p1.status.isGrappled || p2.status.isGrappled) {
-                const grappledEntity = p1.status.isGrappled ? p1 : p2;
-                const winner = grappledEntity === p1 ? p2 : p1;
-                currentTurn.log.push(`The Clash is nullified! **${grappledEntity.name}** fails. ${winner.name} gets a free attack.`);
-                await handleAttackAction(winner, grappledEntity, winner.attack, 'Physical', true); 
-                return;
-            }
-            
-            let p1Coins = p1.coinFlips;
-            let p2Coins = p2.coinFlips;
-            
-            // Zect's Homogenous Trait
-            if (p1.name === 'Zect') p1Coins *= 2;
-            if (p2.name === 'Zect') p2Coins *= 2;
-            
-            let p1Heads = flipCoins(p1Coins, p1);
-            let p2Heads = flipCoins(p2Coins, p2);
-            
-            currentTurn.log.push(`***CLASH!***`);
-
-            // --- Animation Point ---
-            await animateCoinFlips(p1.name, p1Coins, p1Heads, p2.name, p2Coins, p2Heads);
-
-            currentTurn.log.push(`${p1.name}: ${p1Heads} Heads (of ${p1Coins} coins).`);
-            currentTurn.log.push(`${p2.name}: ${p2Heads} Heads (of ${p2Coins} coins).`);
-
-            let winner, loser;
-            if (p1Heads > p2Heads) { winner = p1; loser = p2; } 
-            else if (p2Heads > p1Heads) { winner = p2; loser = p1; } 
-            else {
-                let p1Taken = p1.takeDamage(p2.rollAttackDamage(p2.attack));
-                let p2Taken = p2.takeDamage(p1.rollAttackDamage(p1.attack));
-                currentTurn.log.push(`The clash is a DRAW! Both take damage.`);
-                await animateDamageText(p1Taken, 'damage');
-                await animateDamageText(p2Taken, 'damage');
-                return;
-            }
-
-            let winnerHeads = (winner === p1) ? p1Heads : p2Heads;
-            let bonusDamage = winnerHeads * 2;
-            
-            if (winner.name === 'Zect') bonusDamage *= 2;
-            bonusDamage += winner.status.zectClashBonus;
-
-            let baseDamage = winner.rollAttackDamage(winner.attack);
-            let totalDamage = baseDamage + bonusDamage;
-            let damageTaken = loser.takeDamage(totalDamage);
-            
-            currentTurn.log.push(`**${winner.name} WINS** the clash! Hits for **${damageTaken}** damage.`);
-            await animateDamageText(damageTaken, 'damage');
-
-            // --- Winner Traits ---
-            if (winner.name === 'Balter') {
-                const extraDie = loser.status.isGrappled ? 6 : 4;
-                const extraDmg = 1 + Math.floor(Math.random() * extraDie);
-                const dmgTaken = loser.takeDamage(extraDmg, 'Physical', true);
-                currentTurn.log.push(`Balter's Old One-Two! Extra hit for ${dmgTaken} damage.`);
-                await animateDamageText(dmgTaken, 'damage');
-            }
-            
-            if (winner.name === 'Striker') {
-                if (winner.status.momentumStacks < 3) winner.status.momentumStacks++;
-                currentTurn.log.push(`Striker gains a stack of Momentum (${winner.status.momentumStacks}).`);
-            }
-        }
-
-
-        function endTurnChecks() {
-            const player = gameState.player;
-            const enemy = gameState.currentEnemy;
-            
-            updateCombatLog(currentTurn.log);
-            
-            if (!player.isAlive) {
-                gameState.state = 'GAME_OVER';
-                clearActions();
-                displayDialogue(`Game Over. You perished on Floor ${gameState.currentFloor}!`);
-                document.getElementById('action-area').innerHTML = `<button class="action-button" onclick="startGame('${gameState.playerCharacterKey}')">Try Again?</button>`;
-                showView('vn-view');
-            } else if (!enemy.isAlive) {
-                gameState.currentGold += 10;
-                displayDialogue(`**VICTORY!** The ${enemy.name} is defeated! You gained 10 Gold.`);
-                clearActions();
-                document.getElementById('action-area').innerHTML = `<button class="action-button" onclick="nextRunStage()">Continue Deeper</button>`;
-                showView('vn-view');
-            } else {
-                // Combat continues
-                document.getElementById('action-area').innerHTML = `<button class="action-button" onclick="displayCombatOptions()">Next Turn</button>`;
-            }
-            
-            updateStatsDisplay();
-        }
-
-        // --- Initialization ---
-        window.onload = () => {
-            showMenu();
-            updateStatsDisplay(); 
-        };
-        // --- END game.js CONTENT ---
-    </script>
+        html += `<button class="action-button ability-utility" onclick="handlePlayerAction('IRONGUARD')">Iron Guard</button>`;
+    }
+    // add other characters...
+    return html;
+}
+
+// --- 4. Portrait with hover info ---
+const portrait = document.getElementById('portrait');
+const tooltip = document.getElementById('portrait-tooltip');
+
+portrait.addEventListener('mouseenter', () => {
+    const p = gameState.player;
+    if (!p) return;
+    tooltip.innerHTML = `
+        <strong>${p.name}</strong><br>
+        HP: ${p.currentHp}/${p.maxHp}<br>
+        Attack: ${p.attack}<br>
+        Defense: ${p.defense}<br>
+        Speed: ${p.speed}<br>
+        Abilities:<br>
+        - Haymaker<br>
+        - Grapple<br>
+        - Iron Guard
+    `;
+    tooltip.style.display = 'block';
+});
+portrait.addEventListener('mouseleave', () => {
+    tooltip.style.display = 'none';
+});
+
+// --- 5. Inventory Button ---
+const invBtn = document.getElementById('inventory-button');
+invBtn.onclick = () => {
+    alert('Inventory feature coming soon!');
+}
+
+// --- 6. Initialize combat log size ---
+function initCombatLog() {
+    const logEl = document.getElementById('combat-log');
+    logEl.innerHTML = '';
+}
+window.onload = () => {
+    showMenu();
+    updateStatsDisplay();
+    initCombatLog();
+}
+</script>
 </body>
 </html>
